@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Live Dashboard</title>
+<style>
+  :root {
+    /* LIGHT is the default theme */
+    color-scheme: light;
+    --page: #f2f1ed;
+    --surface-1: #ffffff;
+    --surface-2: #f0efec;
+    --text-primary: #0b0b0b;
+    --text-secondary: #232220;
+    --text-muted: #4b4944;
+    --hairline: rgba(11,11,11,0.28);
+    --gridline: #cfcec5;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --link: #1c5cab;
+    --chip-bg: rgba(11,11,11,0.05);
+    --card-shadow: 0 1px 4px rgba(11,11,11,0.10);
+    --pop-shadow: 0 5px 12px rgba(11,11,11,0.22);
+    --mark-ring: #1a1a19;   /* near-black highlight ring in light mode */
+    --mark-ring-w: 0px;     /* no extra ring width — just the 1px border */
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --surface-2: #232322;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --hairline: rgba(255,255,255,0.10);
+    --gridline: #2c2c2a;
+    --link: #3987e5;
+    --chip-bg: rgba(255,255,255,0.06);
+    --card-shadow: none;
+    --pop-shadow: 0 5px 14px rgba(215,215,210,0.12); /* subtle grey lift on dark */
+    --mark-ring: #85837d;   /* lighter grey than the default border */
+    --mark-ring-w: 0px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    zoom: 1.25; /* overall UI scale — tune this one number */
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    padding: 14px 18px 10px;
+    position: sticky; top: 0; background: var(--page); z-index: 5;
+    border-bottom: 1px solid var(--hairline);
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: .01em; }
+  .hdr-date { color: var(--text-secondary); }
+  .hdr-updated { color: var(--text-muted); font-size: 12.5px; margin-left: auto; }
+  .hdr-updated .err { color: var(--critical); font-weight: 600; }
+  .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tog {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--chip-bg); border: 1px solid var(--hairline);
+    color: var(--text-secondary); border-radius: 999px;
+    padding: 4px 11px; font-size: 12.5px; cursor: pointer; user-select: none;
+  }
+  .tog[aria-pressed="true"] { color: var(--text-primary); border-color: var(--link); }
+  .tog[aria-pressed="true"] .dot { background: var(--link); }
+  .tog .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+  button.plain {
+    background: var(--chip-bg); border: 1px solid var(--hairline); color: var(--text-secondary);
+    border-radius: 999px; padding: 4px 11px; font-size: 12.5px; cursor: pointer;
+  }
+  button.plain:hover, .tog:hover { border-color: var(--text-muted); }
+
+  #banner {
+    display: none; margin: 12px 18px 0; padding: 10px 14px;
+    border: 1px solid var(--critical); border-radius: 8px;
+    background: color-mix(in srgb, var(--critical) 12%, var(--surface-1));
+    font-size: 13px;
+  }
+  #banner.show { display: block; }
+  #toast {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    max-width: 520px; z-index: 20; padding: 11px 16px; font-size: 13px; line-height: 1.4;
+    background: var(--surface-2); color: var(--text-primary);
+    border: 1px solid var(--hairline); border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  main {
+    display: grid; gap: 14px; padding: 16px 18px 30px;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    align-items: start;
+  }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 12px 14px 11px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--card-shadow, none);
+  }
+  .card { cursor: pointer; transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease; }
+  .card.marked {
+    border-color: var(--mark-ring, var(--link));
+    box-shadow: 0 0 0 var(--mark-ring-w, 1px) var(--mark-ring, var(--link)), var(--pop-shadow);
+    transform: translateY(-2px);
+  }
+  .card.leverage {
+    border-color: var(--serious);
+    box-shadow: 0 0 0 1px var(--serious), 0 0 14px rgba(236,131,90,0.25);
+  }
+  .card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 133px; } /* 114 + 19 block shift (slider-tuned) */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 9px; border-radius: 999px; border: 1px solid var(--hairline);
+    color: var(--text-secondary);
+  }
+  .badge.live { color: var(--good); border-color: var(--good); }
+  .badge.live .pulse {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--good);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .badge.warn { color: var(--warning); border-color: var(--warning); }
+  .badge.final { color: var(--text-muted); }
+  .lev-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--serious);
+    border: 1px solid var(--serious); border-radius: 999px; padding: 1.5px 8px;
+  }
+  .card-top .meta { margin-left: auto; color: var(--text-muted); font-size: 12px; text-align: right; }
+
+  /* score-first layout (B0): [52px buffer][50px score chip][logo + names] */
+  .teams { display: grid; grid-template-columns: 50px max-content; gap: 5px 12px;
+           justify-content: start; align-items: center; padding-left: 71px; } /* 52 + 19 block shift */
+  .team-name { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  img.logo { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; }
+  .team-abbr { font-weight: 700; font-size: 19px; }
+  .team-full { color: var(--text-muted); font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .score { font-size: 26px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums;
+           background: var(--surface-2); border-radius: 8px; padding: 1px 0; width: 50px; align-self: center; }
+  .score.lead { font-size: 28px; }
+  .score.trail { color: var(--text-muted); }
+  .score.dim { color: var(--text-muted); font-weight: 600; }
+
+  .statebar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 12.5px; color: var(--text-secondary);
+    border-top: 1px solid var(--gridline); padding-top: 8px;
+    padding-left: 97px; /* 78 + 19 block shift (slider-tuned; score chips at 71) */
+  }
+  .bso { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+  .outdots { display: inline-flex; gap: 3px; }
+  .outdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--gridline); display: inline-block; }
+  .outdots i.on { background: var(--warning); }
+  .bases { display: inline-block; position: relative; width: 22px; height: 20px; }
+  .bases i { position: absolute; width: 8px; height: 8px; background: var(--gridline); transform: rotate(45deg); border-radius: 1.5px; }
+  .bases .b1 { right: 0; top: 8px; } .bases .b2 { left: 7px; top: 0; } .bases .b3 { left: 0; top: 8px; }
+  .bases i.on { background: var(--warning); }
+
+  /* current-at-bat strike zone (selected live games only) — pitcher's view */
+  .abzone { display: flex; gap: 14px; align-items: flex-start; padding-left: 48px; position: relative; } /* slider-tuned */
+  .pl { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-variant-numeric: tabular-nums; padding-top: 4px;
+        width: 69px; flex: 0 0 69px; overflow-wrap: break-word; } /* FIXED width (slider-tuned) so the zone never drifts with list text */
+  .pl span { display: inline-flex; align-items: center; gap: 5px; }
+  .pl i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .pl .plmore { color: var(--text-muted); font-style: italic; }
+  .pl .plresult { color: var(--text-primary); font-weight: 700; }
+  .pl .plcount { color: var(--text-muted); padding-left: 12px; } /* running count, K4-style minus parens */
+  .pitchlegend { position: absolute; left: 48px; bottom: -6px; z-index: 3;
+                 background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+                 border: 1px solid var(--hairline); border-radius: 7px; padding: 2px 8px;
+                 font-size: 9.5px; color: var(--text-muted); opacity: 0; pointer-events: none;
+                 transition: opacity .18s ease; max-width: 92%; }
+  .card:hover .pitchlegend { opacity: 1; }
+  .hstat { opacity: 0; transition: opacity .15s ease; }
+  .card:hover .hstat { opacity: 1; }
+  .delaystrip { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 30px;
+                opacity: 0; pointer-events: none; transition: opacity .18s ease; padding-top: 2px; }
+  .card:hover .delaystrip { opacity: 1; pointer-events: auto; }
+  .delaystrip input[type=number] { width: 30px; font-size: 10.5px; padding: 1px 2px; text-align: center;
+                                   border: 1px solid var(--hairline); border-radius: 5px;
+                                   background: var(--surface-1); color: var(--text-primary);
+                                   -moz-appearance: textfield; }
+  .delaystrip input[type=number]::-webkit-outer-spin-button,
+  .delaystrip input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .delaystrip input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 16px; height: 150px;
+                                  accent-color: var(--link); }
+  .delaystrip .dlbl { font-size: 9.5px; color: var(--text-muted); letter-spacing: .03em; }
+
+  .matchup { font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+  .matchup .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+  .matchup .lbl { color: var(--text-muted); font-size: 11.5px; min-width: 52px; letter-spacing: .03em; }
+  .dueup { color: var(--text-secondary); font-size: 12px; }
+  .odds { font-size: 12.5px; color: var(--text-secondary); }
+  .odds b { color: var(--text-primary); font-weight: 650; }
+  .context { font-size: 12px; color: var(--text-muted); }
+
+  .links {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    border-top: 1px solid var(--gridline); padding-top: 8px;
+  }
+  .links a.pill, .links button.pill {
+    font-size: 12px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--hairline); background: var(--chip-bg);
+    color: var(--link); cursor: pointer; font-family: inherit;
+  }
+  .links button.pill { color: var(--text-primary); font-weight: 600; }
+  .links a.pill:hover, .links button.pill:hover { border-color: var(--link); text-decoration: none; }
+
+  .section-label {
+    grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: .09em;
+    color: var(--text-muted); text-transform: uppercase; margin: 4px 0 -6px;
+  }
+  footer {
+    padding: 4px 18px 26px; color: var(--text-muted); font-size: 12px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+  .empty { grid-column: 1 / -1; color: var(--text-secondary); padding: 30px 0; text-align: center; }
+
+  .guide {
+    margin: 2px 18px 22px; max-width: 1000px;
+    background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 12px;
+    padding: 14px 20px 16px; box-shadow: var(--card-shadow, none);
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .guide h2 { font-size: 14px; margin: 0 0 8px; letter-spacing: .05em; text-transform: uppercase; }
+  .guide .gdate { color: var(--text-muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 8px; font-size: 12.5px; }
+  .guide .gstale { color: var(--serious); font-weight: 600; margin-left: 8px; font-size: 12.5px; text-transform: none; letter-spacing: 0; }
+  .guide ul { margin: 6px 0 10px; padding-left: 20px; }
+  .guide li { margin: 4px 0; }
+  .guide p { margin: 6px 0; }
+  .guide .gsources { color: var(--text-muted); font-size: 12px; }
+
+  /* ===== Tabs + Wild-card view ===== */
+  [hidden] { display: none !important; }
+  .tabs { display: inline-flex; gap: 0; border: 1px solid var(--hairline); border-radius: 999px; overflow: hidden; }
+  .tabs button {
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    color: var(--text-muted); background: transparent; border: none;
+    padding: 4px 13px;
+  }
+  .tabs button + button { border-left: 1px solid var(--hairline); }
+  .tabs button.active { color: var(--text-primary); background: var(--chip-bg); box-shadow: inset 0 0 0 1px var(--link); border-radius: 999px; }
+  .tabs button:not(.active):hover { color: var(--text-secondary); }
+  #wcview { padding: 14px 18px 4px; max-width: 760px; }
+  #wcview h2 { font-size:15px; margin:0 0 2px; }
+  #wcview .wc-sub { color:var(--text-secondary); font-size:12.5px; margin:0 0 14px; max-width:72ch; }
+  .wc-panel {
+    background:var(--surface-1); border:1px solid var(--hairline); border-radius:10px;
+    padding:12px 16px 8px; margin:0 0 16px; box-shadow: var(--card-shadow);
+  }
+  .wc-panel h3 { font-size:13.5px; font-weight:650; margin:0 0 8px; }
+  .wc-panel table { width:100%; border-collapse:collapse; font-size:13px; }
+  .wc-panel th {
+    text-align:right; font-weight:500; font-size:11px; color:var(--text-muted);
+    padding:2px 8px 6px; border-bottom:1px solid var(--hairline); white-space:nowrap;
+  }
+  .wc-panel th:first-child { text-align:left; }
+  .wc-panel td {
+    padding:5px 8px; text-align:right; font-variant-numeric:tabular-nums;
+    white-space:nowrap; border-bottom:1px solid var(--gridline); color:var(--text-primary);
+  }
+  .wc-panel tr:last-child td { border-bottom:none; }
+  .wc-panel td.team { text-align:left; }
+  .wc-panel td.team b { font-weight:600; }
+  .wc-tag { display:inline-block; font-size:10px; font-weight:600; color:var(--link);
+    border:1px solid var(--hairline); border-radius:4px; padding:0 4px; margin-left:6px; vertical-align:1px; }
+  .wc-plus { color:var(--text-secondary); }
+  tr.wc-mut td, tr.wc-mut td.team b { color:var(--text-muted); font-weight:500; }
+  tr.wc-cut td {
+    border-top:2px solid var(--link); border-bottom:none; padding:2px 8px;
+    font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--link);
+    text-align:center; font-weight:600;
+  }
+  .wc-vsf u { text-decoration: underline dotted; text-underline-offset: 3px; cursor: default; }
+  .wc-foot { font-size:11.5px; color:var(--text-muted); max-width:84ch; margin:2px 0 10px; }
+  .wc-tip {
+    position:fixed; pointer-events:none; z-index:60; display:none;
+    background:var(--surface-1); border:1px solid var(--hairline); border-radius:8px;
+    padding:8px 10px; font-size:12px; color:var(--text-primary);
+    box-shadow: var(--pop-shadow); max-width:250px; text-align:left;
+  }
+  .wc-tip .t2 { color:var(--text-secondary); margin-top:3px; font-variant-numeric:tabular-nums; line-height:1.5; }
+  .wc-up { color:var(--good); font-weight:600; }
+  .wc-dn { color:var(--critical); font-weight:600; }
+  .wc-ev { color:var(--text-muted); }
+  .wc-zero { opacity: 0.72; }
+  #wcview { max-width: 960px; }
+  .wc-wrap { display: flex; align-items: flex-start; position: relative; }
+  .wc-panel table { width: auto; flex: 0 0 auto; min-width: 470px; }
+  .wc-hist { position: relative; flex: 1 1 auto; min-width: 200px; max-width: 290px; margin-left: 6px; }
+  .wc-hist svg { display: block; }
+  .wc-div { display:block; border-top:1px dashed var(--gridline); margin:5px 0 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚾ MLB Live</h1>
+  <span class="hdr-date" id="hdrDate"></span>
+  <div class="controls">
+    <button class="tog" id="togSort" aria-pressed="true" title="Sort live, close, late games to the top"><span class="dot"></span>Watchability sort</button>
+    <button class="tog" id="togLev" aria-pressed="true" title="Highlight close, late-inning games"><span class="dot"></span>Leverage highlight</button>
+    <button class="plain" id="btnTheme" title="Toggle light/dark">◐ Theme</button>
+    <button class="plain" id="btnRefresh" title="Refresh now">↻ Refresh</button>
+    <nav class="tabs"><button id="tabLive" class="active">Live games</button><button id="tabWC">Wild-card race</button></nav>
+  </div>
+  <span class="hdr-updated" id="updated">loading…</span>
+</header>
+
+
+<div id="banner"></div>
+<div id="toast" role="status"></div>
+<main id="grid"><div class="empty">Loading today’s games…</div></main>
+
+<section class="guide" id="guide">
+<!-- WATCH-GUIDE:START -->
+<div data-guide-date="2026-08-30">
+  <h2>Today&rsquo;s watch guide <span class="gdate">Sunday, Aug 30</span><span class="gstale" id="guideStale"></span></h2>
+  <ul>
+    <li><b>Mariners @ Blue Jays, 10:37 AM</b> (live now) — <a href="https://baseballsavant.mlb.com/savant-player/logan-gilbert-669302?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Gilbert</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/max-scherzer-453286?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Scherzer</a>. Best matchup of the day: Toronto (W2, 1.5 out) can complete the series win and shove Seattle (L3, 4.0 out) to the brink; Gilbert&ndash;Scherzer is worth the window on its own.</li>
+    <li><b>Red Sox @ Yankees, 10:35 AM</b> (live now) — <a href="https://baseballsavant.mlb.com/savant-player/ranger-suarez-624133?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Su&aacute;rez</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/will-warren-701542?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Warren</a>. Game 4 with New York up 2-1 in the series after the doubleheader split &mdash; Boston pulls within two with a win, falls four back with a loss.</li>
+    <li><b>Padres @ Rays, 10:40 AM</b> (live now) — <a href="https://baseballsavant.mlb.com/savant-player/robbie-ray-592662?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Ray</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/drew-rasmussen-656876?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Rasmussen</a>. <b>San Diego woke up out of the playoffs</b> &mdash; Arizona took the third NL card overnight, and the Padres (L2) are 0.5 back with the AL&rsquo;s best team in front of them today.</li>
+    <li><b>Dodgers @ Tigers, 10:40 AM</b> (live now) — <a href="https://baseballsavant.mlb.com/savant-player/tyler-glasnow-607192?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Glasnow</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/framber-valdez-664285?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Valdez</a>. Series finale of the Skubal-return weekend &mdash; a real veteran arms matchup and LA trying to take the series before heading home.</li>
+    <li><b>Reds @ Cubs, 4:20 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/chase-burns-695505?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Burns</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/shota-imanaga-684007?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Imanaga</a>. The evening anchor: the sport&rsquo;s most electric young arm at Wrigley against a Cubs team holding the NL&rsquo;s top wild card.</li>
+  </ul>
+  <p><b>Storylines:</b> The wild-card tables turned overnight in both leagues. In the NL, <b>Arizona passed San Diego</b> for the third card &mdash; first lead change in that race since early August, FanGraphs has it a coin flip (SD 52%, AZ 46%). In the AL, Cleveland is suddenly the hunted: two straight losses to Kansas City with Toronto and Baltimore both charging to 1.5 back and Texas at 2.0 &mdash; four teams within two games of the cut, and the Guardians&rsquo; odds have slid from 62% to 49% in three days. The White Sox (W4) have quietly opened a 4.5-game Central lead. Atlanta&rsquo;s won six straight; Milwaukee&rsquo;s at 85-51 and threatening 100 wins. Nearly the whole slate runs in one 10:35 AM&ndash;1 PM window &mdash; prime multi-view &mdash; then Burns&ndash;Imanaga stands alone at night.</p>
+  <p class="gsources">Sources: <a href="https://www.fangraphs.com/standings/playoff-odds" target="_blank" rel="noopener">FanGraphs playoff odds (8/30)</a> &middot; <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">MLB standings</a> &middot; <a href="https://www.mlb.com/scores/2026-08-30" target="_blank" rel="noopener">Sunday scores</a></p>
+</div>
+<!-- WATCH-GUIDE:END -->
+</section>
+
+<section id="wcview" hidden>
+<!-- WILDCARD:START -->
+<div data-wc-date="2026-08-30">
+  <h2>The 2026 wild-card race</h2>
+  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Sun, Aug 30. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
+  <div class="wc-panel">
+    <h3>American League</h3>
+    <div class="wc-wrap">
+    <table>
+      <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
+      <tbody>
+        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>77-59</td><td class="wc-plus">+8.5</td><td>100%</td><td>14-12</td><td>91-71</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>74-62</td><td class="wc-plus">+6.5</td><td>98.4%</td><td>14-12</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="CLE"><td class="team"><b>Guardians</b><span class="wc-tag">WC3</span></td><td>68-68</td><td>&mdash;</td><td>48.7%</td><td>14-12</td><td>82-80</td><td class="wc-vsf" data-abbr="CLE">&hellip;</td></tr>
+        <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
+        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>67-70</td><td>1.5</td><td>21.3%</td><td>13-12</td><td>80-82</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
+        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>67-69</td><td>1.5</td><td>19.7%</td><td>13-13</td><td>80-82</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
+        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>66-70</td><td>2.0</td><td>22.9%</td><td>13-13</td><td>79-83</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
+        <tr data-team="SEA"><td class="team"><b>Mariners</b></td><td>64-72</td><td>4.0</td><td>30.1%</td><td>15-11</td><td>79-83</td><td class="wc-vsf" data-abbr="SEA">&hellip;</td></tr>
+        <tr data-team="MIN"><td class="team"><b>Twins</b></td><td>64-72</td><td>4.0</td><td>5.3%</td><td>13-13</td><td>77-85</td><td class="wc-vsf" data-abbr="MIN">&hellip;</td></tr>
+        <tr data-team="DET"><td class="team"><b>Tigers</b></td><td>63-72</td><td>4.5</td><td>2.3%</td><td>14-13</td><td>77-85</td><td class="wc-vsf" data-abbr="DET">&hellip;</td></tr>
+        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>62-75</td><td>6.5</td><td>0.2%</td><td>12-13</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>53-83</td><td>14.5</td><td>0.0%</td><td>11-15</td><td>64-98</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>52-84</td><td>15.5</td><td>0.0%</td><td>11-15</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+      </tbody>
+    </table>
+    <div class="wc-hist" data-lg="AL"></div>
+    </div>
+  </div>
+  <div class="wc-panel">
+    <h3>National League</h3>
+    <div class="wc-wrap">
+    <table>
+      <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
+      <tbody>
+        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC1</span></td><td>77-59</td><td class="wc-plus">+4.5</td><td>98.8%</td><td>14-12</td><td>91-71</td><td class="wc-vsf" data-abbr="CHC">&hellip;</td></tr>
+        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC2</span></td><td>76-60</td><td class="wc-plus">+3.0</td><td>97.5%</td><td>14-12</td><td>90-72</td><td class="wc-vsf" data-abbr="PHI">&hellip;</td></tr>
+        <tr data-team="AZ"><td class="team"><b>D-backs</b><span class="wc-tag">WC3</span></td><td>73-64</td><td>&mdash;</td><td>46.4%</td><td>12-12</td><td>85-77</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
+        <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
+        <tr data-team="SD"><td class="team"><b>Padres</b></td><td>72-64</td><td>0.5</td><td>52.4%</td><td>13-13</td><td>85-77</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
+        <tr data-team="MIA"><td class="team"><b>Marlins</b></td><td>68-68</td><td>4.5</td><td>2.5%</td><td>12-14</td><td>80-82</td><td class="wc-vsf" data-abbr="MIA">&hellip;</td></tr>
+        <tr data-team="STL"><td class="team"><b>Cardinals</b></td><td>68-69</td><td>5.0</td><td>1.5%</td><td>12-13</td><td>80-82</td><td class="wc-vsf" data-abbr="STL">&hellip;</td></tr>
+        <tr data-team="PIT"><td class="team"><b>Pirates</b></td><td>66-71</td><td>7.0</td><td>0.9%</td><td>14-11</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>64-72</td><td>8.5</td><td>0.0%</td><td>11-15</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>65-73</td><td>8.5</td><td>0.0%</td><td>11-13</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>61-75</td><td>11.5</td><td>0.0%</td><td>13-13</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>55-81</td><td>17.5</td><td>0.0%</td><td>12-14</td><td>67-95</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>52-84</td><td>20.5</td><td>0.0%</td><td>10-16</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+      </tbody>
+    </table>
+    <div class="wc-hist" data-lg="NL"></div>
+    </div>
+  </div>
+  <p class="wc-foot">Odds and projections: FanGraphs playoff odds (FG mode), every route to October included &mdash; the Mariners&rsquo; 41.5% and the Guardians&rsquo; 62% lean partly on their open division races. Division leaders (Rays, White Sox, Astros, Brewers, Dodgers, Braves) aren&rsquo;t listed; a leader who slips falls into this race. Grayed rows are effectively eliminated. &ldquo;vs field&rdquo; = remaining games against the contention field (teams within ~5 games of the cut, both sides), computed live from the schedule each time the page loads &mdash; hover for the full field breakdown (zero-game opponents included) with each head-to-head gap (<span class="wc-up">green</span> = you&rsquo;re ahead of them, <span class="wc-dn">red</span> = behind).</p>
+</div>
+<!-- WILDCARD:END -->
+</section>
+<div class="wc-tip" id="wcTip"></div>
+
+<footer>
+  <span>Auto-refreshes every 30s · Data: MLB Stats API · Odds: ESPN/DraftKings (context only)</span>
+  <a href="https://baseballsavant.mlb.com/scoreboard" target="_blank" rel="noopener">Savant scoreboard</a>
+  <a href="https://umpscorecards.com" target="_blank" rel="noopener">Ump Scorecards</a>
+  <a href="https://www.fangraphs.com/scores" target="_blank" rel="noopener">FanGraphs live</a>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const POLL_MS = 30000, ODDS_MS = 600000, TZ = "America/Los_Angeles";
+  const state = {
+    games: [],            // normalized game objects
+    slugs: new Map(),     // playerId -> nameSlug
+    odds: new Map(),      // "away|home" (lowercased full names) -> odds object
+    lastOk: null,         // Date of last successful update
+    lastErr: null,
+    sortWatch: true,
+    leverage: true,
+    date: null,
+    marked: new Set(),     // gamePks the user has click-highlighted
+  };
+  try { state.marked = new Set(JSON.parse(localStorage.getItem("mlbMarked") || "[]")); } catch (e) {}
+  function persistMarked() {
+    try { localStorage.setItem("mlbMarked", JSON.stringify([...state.marked])); } catch (e) {}
+  }
+
+  // ---------- current-at-bat pitch tracking (selected live games only) ----------
+  state.abData = new Map();   // pk -> {abIdx, events: [{n,t,v,r,x,z}], szT, szB}
+  state.pitchSeen = new Map(); // pk -> Map("abIdx:pitchN" -> firstSeen ms)
+  let pitchDelays = {};        // pk -> seconds (spoiler delay, per game)
+  try { pitchDelays = JSON.parse(localStorage.getItem("mlbPitchDelay")) || {}; } catch (e) {}
+  function saveDelays() { try { localStorage.setItem("mlbPitchDelay", JSON.stringify(pitchDelays)); } catch (e) {} }
+
+  const FEED_FIELDS = "liveData,plays,currentPlay,about,atBatIndex,matchup,batter,id,playEvents," +
+    "isPitch,pitchNumber,details,type,code,call,isBall,pitchData,startSpeed,coordinates,pX,pZ," +
+    "strikeZoneTop,strikeZoneBottom,result,event";
+  state.lastAB = new Map(); // pk -> completed at-bat (kept on screen until the next batter's first pitch)
+  // call code -> result class: b(all) / s(trike) / f(oul) / x (in play)
+  const CALLMAP = { B:"b", "*B":"b", I:"b", P:"b", H:"b", V:"b", C:"s", S:"s", W:"s", Q:"s", M:"s",
+                    F:"f", T:"f", L:"f", R:"f", O:"f", X:"x", D:"x", E:"x", J:"x", Z:"x", Y:"x" };
+  function classifyPitch(e) {
+    const c = e.details && e.details.call && e.details.call.code;
+    if (c && CALLMAP[c]) return CALLMAP[c];
+    return e.details && e.details.isBall ? "b" : "s";
+  }
+  async function fetchAB(pk) {
+    try {
+      const data = await getJSON("https://statsapi.mlb.com/api/v1.1/game/" + pk + "/feed/live?fields=" + FEED_FIELDS);
+      const cp = data.liveData && data.liveData.plays && data.liveData.plays.currentPlay;
+      if (!cp) { state.abData.delete(pk); return; }
+      const abIdx = cp.about ? cp.about.atBatIndex : -1;
+      const pitches = (cp.playEvents || []).filter(e => e.isPitch);
+      let szT = 3.4, szB = 1.6;
+      const events = pitches.map(e => {
+        const pd = e.pitchData || {};
+        if (pd.strikeZoneTop) szT = pd.strikeZoneTop;
+        if (pd.strikeZoneBottom) szB = pd.strikeZoneBottom;
+        return { n: e.pitchNumber, t: (e.details && e.details.type && e.details.type.code) || "?",
+                 v: pd.startSpeed ? Math.round(pd.startSpeed) : "", r: classifyPitch(e),
+                 x: pd.coordinates ? pd.coordinates.pX : null, z: pd.coordinates ? pd.coordinates.pZ : null };
+      });
+      // first-seen tracking for the spoiler delay (silent — held pitches just appear later)
+      let seen = state.pitchSeen.get(pk);
+      const fresh = !seen || ![...(seen.keys())].some(k => k.startsWith(abIdx + ":"));
+      if (!seen) { seen = new Map(); state.pitchSeen.set(pk, seen); }
+      const keep = state.lastAB.get(pk); // keep timestamps for the retained finished AB too
+      for (const k of [...seen.keys()])
+        if (!k.startsWith(abIdx + ":") && !(keep && k.startsWith(keep.abIdx + ":"))) seen.delete(k);
+      const now = Date.now();
+      events.forEach((ev, i) => {
+        const k = abIdx + ":" + ev.n;
+        // on first sight of an in-progress AB, backdate all but the newest pitch — they're old news
+        if (!seen.has(k)) seen.set(k, fresh && i < events.length - 1 ? 0 : now);
+      });
+      const abObj = { abIdx, events, szT, szB, result: (cp.result && cp.result.event) || null };
+      if (abObj.result && events.length) state.lastAB.set(pk, abObj); // completed AB: retain
+      state.abData.set(pk, abObj);
+    } catch (e) { /* zone simply doesn't render this tick */ }
+  }
+  function visiblePitches(pk) {
+    const cur = state.abData.get(pk);
+    if (!cur) return null;
+    const delayMs = (pitchDelays[pk] || 0) * 1000;
+    const seen = state.pitchSeen.get(pk) || new Map();
+    const now = Date.now();
+    const mk = ab => {
+      const vis = ab.events.filter(ev => now - (seen.get(ab.abIdx + ":" + ev.n) || 0) >= delayMs);
+      // result line only once the final pitch is visible (respects the spoiler delay)
+      return { ...ab, events: vis, showResult: !!ab.result && vis.length === ab.events.length && vis.length > 0 };
+    };
+    const curV = mk(cur);
+    if (!curV.events.length) {
+      // between batters (or new AB's pitches still delay-held): keep the finished AB on screen
+      const last = state.lastAB.get(pk);
+      if (last && last.abIdx !== cur.abIdx) {
+        const lastV = mk(last);
+        if (lastV.events.length) return lastV;
+      }
+    }
+    return curV;
+  }
+  const PITCH_NAMES = { FF: "4-Seam", SI: "Sinker", FC: "Cutter", SL: "Slider", ST: "Sweeper",
+    CU: "Curve", KC: "Knuckle Curve", CH: "Changeup", FS: "Splitter", KN: "Knuckler",
+    SV: "Slurve", EP: "Eephus", FO: "Forkball", SC: "Screwball", CS: "Slow Curve",
+    FA: "Fastball", PO: "Pitchout" };
+
+  const PITCH_COL = { b: "var(--good)", s: "var(--critical)", f: "#b98200", x: "var(--link)" };
+  function zoneSVG(ab) {
+    // uniform px-per-foot on both axes so the zone keeps its true taller-than-wide shape
+    const S = 48, W = 3 * S, H = Math.round(4.2 * S), r = 8;
+    const x = v => (1.5 - v) * S;   // pitcher's view (mirrored)
+    const z = v => (4.6 - v) * S;
+    // zone rect at RULEBOOK plate width (17" = ±0.708 ft), like broadcast overlays —
+    // not the ±0.83 ft Statcast detection width (plate + ball radius), which reads squat
+    const ZH = 0.708;
+    const zx = x(ZH), zw = x(-ZH) - zx, zy = z(ab.szT), zh = z(ab.szB) - zy;
+    let s = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='overflow:visible'>";
+    s += "<rect x='0' y='0' width='" + W + "' height='" + H + "' rx='6' fill='var(--surface-2)'/>";
+    const py = H - 7, pw = zw * 0.9, px2 = zx + zw * 0.05;
+    s += "<path d='M" + px2 + " " + py + " h" + pw + " l-" + (pw * 0.2) + " 4.5 h-" + (pw * 0.6) + " Z' fill='none' stroke='var(--text-muted)' stroke-width='1'/>";
+    s += "<rect x='" + zx + "' y='" + zy + "' width='" + zw + "' height='" + zh + "' fill='none' stroke='var(--text-muted)' stroke-width='1.4'/>";
+    for (let i = 1; i < 3; i++) {
+      s += "<line x1='" + (zx + zw * i / 3) + "' y1='" + zy + "' x2='" + (zx + zw * i / 3) + "' y2='" + (zy + zh) + "' stroke='var(--gridline)' stroke-width='0.8'/>";
+      s += "<line x1='" + zx + "' y1='" + (zy + zh * i / 3) + "' x2='" + (zx + zw) + "' y2='" + (zy + zh * i / 3) + "' stroke='var(--gridline)' stroke-width='0.8'/>";
+    }
+    const plotted = ab.events.filter(ev => ev.x != null && ev.z != null);
+    plotted.forEach((ev, i) => {
+      const cx = x(ev.x), cy = z(ev.z), last = i === plotted.length - 1;
+      if (last) s += "<circle cx='" + cx + "' cy='" + cy + "' r='" + (r + 3) + "' fill='none' stroke='" + PITCH_COL[ev.r] + "' stroke-width='1.3'/>";
+      s += "<circle cx='" + cx + "' cy='" + cy + "' r='" + r + "' fill='" + PITCH_COL[ev.r] + "'/>";
+      s += "<text x='" + cx + "' y='" + (cy + 2.8) + "' text-anchor='middle' font-size='8.5' font-weight='700' fill='#fff'>" + ev.n + "</text>";
+    });
+    return s + "</svg>";
+  }
+  // running count computed from the VISIBLE pitches (so it respects the spoiler delay)
+  function abCount(events) {
+    let b = 0, s = 0;
+    for (const ev of events) {
+      if (ev.r === "b") b++;
+      else if (ev.r === "s") s++;
+      else if (ev.r === "f" && s < 2) s++;
+    }
+    return Math.min(b, 3) + " – " + Math.min(s, 2);
+  }
+  const MAX_PITCH_LIST = 8;
+  function abZoneHTML(g) {
+    const ab = visiblePitches(g.pk);
+    if (!ab) return "";
+    const cut = Math.max(0, ab.events.length - MAX_PITCH_LIST);
+    const shown = ab.events.slice(cut);
+    const list = "<div class='pl'>" +
+      (cut ? "<span class='plmore'>… " + cut + " earlier</span>" : "") +
+      shown.map(ev => "<span><i style='background:" + PITCH_COL[ev.r] + "'></i>" + ev.n + " " + esc(ev.t) + " " + ev.v + "</span>").join("") +
+      (ab.showResult ? "<span class='plresult'>! " + esc(ab.result) + "</span>"
+                     : "<span class='plcount'>" + abCount(ab.events) + "</span>") +
+      "</div>";
+    const dv = pitchDelays[g.pk] || 0;
+    const strip = "<div class='delaystrip' data-dpk='" + g.pk + "' title='Pitch display delay (seconds)'>" +
+      "<input type='number' min='0' max='300' value='" + dv + "'><span class='dlbl'>sec</span>" +
+      "<input type='range' min='0' max='60' value='" + Math.min(dv, 60) + "'></div>";
+    const codes = [...new Set(shown.map(ev => ev.t))].filter(c => PITCH_NAMES[c]);
+    const legend = codes.length
+      ? "<div class='pitchlegend'>" + codes.map(c => c + " " + PITCH_NAMES[c]).join(" · ") + "</div>" : "";
+    return "<div class='abzone'>" + list + zoneSVG(ab) + strip + legend + "</div>";
+  }
+
+  // ---------- pre-game odds snapshots ----------
+  // Record the favorite's line while a game is >1h from first pitch (refreshed each odds
+  // poll, so the kept value is ~the T-60min line); if we first see odds inside the hour,
+  // take that as the snapshot. Frozen thereafter, so live/final games show pre-game odds.
+  let oddsSnaps = { date: null, snaps: {} };
+  try { oddsSnaps = JSON.parse(localStorage.getItem("mlbOddsSnap")) || oddsSnaps; } catch (e) {}
+  function favoriteFrom(o, g) {
+    const a = parseInt(o.mlAway), h = parseInt(o.mlHome);
+    if (isNaN(a) || isNaN(h)) return "";
+    return a < h ? g.away.abbr + " " + o.mlAway : g.home.abbr + " " + o.mlHome;
+  }
+  function favSideOf(o) {
+    const a = parseInt(o.mlAway), h = parseInt(o.mlHome);
+    if (isNaN(a) || isNaN(h)) return null;
+    return a < h ? "away" : "home"; // lower (more negative) moneyline = favorite
+  }
+  function getSnap(pk) {
+    const s = oddsSnaps.snaps[pk];
+    if (!s) return null;
+    return typeof s === "string" ? { t: s, s: null } : s; // migrate pre-v1.15 string snaps
+  }
+  function captureOddsSnaps() {
+    if (oddsSnaps.date !== state.date) oddsSnaps = { date: state.date, snaps: {} };
+    const now = Date.now();
+    for (const g of state.games) {
+      const o = state.odds.get((g.away.name + "|" + g.home.name).toLowerCase());
+      if (!o) continue;
+      if (g.abstract === "Preview") {
+        const txt = o.details || favoriteFrom(o, g);
+        if (txt && (!oddsSnaps.snaps[g.pk] || now < g.start.getTime() - 3600000))
+          oddsSnaps.snaps[g.pk] = { t: txt, s: favSideOf(o) };
+      } else if (!oddsSnaps.snaps[g.pk]) {
+        // Late capture for live/final games with no snapshot (page wasn't open pre-game):
+        // ESPN's close moneylines stay available during play and ARE the frozen pre-game
+        // lines, so backfill from those (not `details`, which can shift to live odds).
+        const txt = favoriteFrom(o, g);
+        if (txt) oddsSnaps.snaps[g.pk] = { t: txt, s: favSideOf(o) };
+      }
+    }
+    try { localStorage.setItem("mlbOddsSnap", JSON.stringify(oddsSnaps)); } catch (e) {}
+  }
+  function oddsText(g) {
+    let snap = getSnap(g.pk);
+    if (!snap && g.abstract === "Preview") {
+      const o = state.odds.get((g.away.name + "|" + g.home.name).toLowerCase());
+      if (o) { const t = o.details || favoriteFrom(o, g); if (t) snap = { t, s: favSideOf(o) }; }
+    }
+    if (!snap || !snap.t) return "";
+    let txt = "Pre-game " + snap.t;
+    if (g.abstract === "Live" || g.abstract === "Final") {
+      // 😈 when the pre-game favorite trails by ≥1 run — stays after the final if the
+      // underdog finished the job
+      let side = snap.s;
+      if (!side) { // older snaps: infer side from the abbreviation in the odds string
+        const tok = snap.t.split(" ")[0];
+        side = tok === g.away.abbr ? "away" : tok === g.home.abbr ? "home" : null;
+      }
+      if (side) {
+        const fav = g[side].score, opp = g[side === "away" ? "home" : "away"].score;
+        if (fav != null && opp != null && opp - fav >= 1) txt += " 😈";
+      }
+    }
+    return txt;
+  }
+
+  // ---------- date handling (MLB day rolls over ~4am PT) ----------
+  function currentSlateDate() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false })
+      .formatToParts(now).reduce((o, p) => (o[p.type] = p.value, o), {});
+    let d = new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day));
+    if (+parts.hour < 4) d = new Date(d.getTime() - 86400000); // before 4am PT: yesterday's slate
+    return d.toISOString().slice(0, 10);
+  }
+  function espnDate(iso) { return iso.replaceAll("-", ""); }
+
+  // ---------- fetch helpers ----------
+  async function getJSON(url) {
+    const sep = url.includes("?") ? "&" : "?";
+    const res = await fetch(url + sep + "_=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+    return res.json();
+  }
+
+  // ---------- MLB Stats API ----------
+  async function fetchSchedule(dateISO) {
+    const url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=" + dateISO +
+      "&hydrate=probablePitcher,linescore,team,broadcasts(all),seriesStatus,decisions";
+    const data = await getJSON(url);
+    return (data.dates && data.dates[0] && data.dates[0].games) || [];
+  }
+  async function fetchLinescore(gamePk) {
+    return getJSON("https://statsapi.mlb.com/api/v1/game/" + gamePk + "/linescore");
+  }
+  async function fetchBox(gamePk) {
+    // fields-filtered boxscore: pitchers used (last = current), lineup spots, per-player game stats
+    const data = await getJSON("https://statsapi.mlb.com/api/v1/game/" + gamePk +
+      "/boxscore?fields=teams,away,home,pitchers,battingOrder,players,stats,batting,pitching,numberOfPitches,summary");
+    const t = data.teams || {};
+    return {
+      away: (t.away && t.away.pitchers || []).slice(-1)[0] || null,
+      home: (t.home && t.home.pitchers || []).slice(-1)[0] || null,
+      players: Object.assign({}, (t.away && t.away.players) || {}, (t.home && t.home.players) || {}),
+    };
+  }
+  async function fetchSlugs(ids) {
+    const need = [...new Set(ids)].filter(id => id && !state.slugs.has(id));
+    if (!need.length) return;
+    for (let i = 0; i < need.length; i += 40) {
+      const chunk = need.slice(i, i + 40);
+      try {
+        const data = await getJSON("https://statsapi.mlb.com/api/v1/people?personIds=" + chunk.join(","));
+        for (const p of data.people || []) if (p.nameSlug) state.slugs.set(p.id, p.nameSlug);
+      } catch (e) { /* non-fatal; links fall back to ID-only URLs */ }
+    }
+  }
+
+  // ---------- ESPN odds ----------
+  async function fetchOdds(dateISO) {
+    try {
+      const data = await getJSON("https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=" + espnDate(dateISO));
+      for (const ev of data.events || []) {
+        const comp = ev.competitions && ev.competitions[0];
+        if (!comp) continue;
+        const home = comp.competitors.find(c => c.homeAway === "home");
+        const away = comp.competitors.find(c => c.homeAway === "away");
+        const o = (comp.odds || [])[0];
+        if (!home || !away || !o) continue;
+        const key = (away.team.displayName + "|" + home.team.displayName).toLowerCase();
+        state.odds.set(key, {
+          details: o.details || "",
+          overUnder: o.overUnder,
+          mlHome: o.moneyline && o.moneyline.home && o.moneyline.home.close && o.moneyline.home.close.odds,
+          mlAway: o.moneyline && o.moneyline.away && o.moneyline.away.close && o.moneyline.away.close.odds,
+          provider: o.provider && o.provider.name,
+        });
+      }
+    } catch (e) { /* odds are optional context */ }
+  }
+
+  // ---------- normalization ----------
+  function normalize(g, ls, box) {
+    const line = ls || g.linescore || {};
+    const abstract = (g.status && g.status.abstractGameState) || "Preview"; // Preview | Live | Final
+    const detailed = (g.status && g.status.detailedState) || "";
+    const away = g.teams.away, home = g.teams.home;
+    const offense = line.offense || {}, defense = line.defense || {};
+    return {
+      pk: g.gamePk,
+      abstract, detailed,
+      delayed: /delay|suspend/i.test(detailed),
+      start: new Date(g.gameDate),
+      away: teamBits(away), home: teamBits(home),
+      inning: line.currentInning, inningOrd: line.currentInningOrdinal,
+      half: line.inningState, isTop: line.isTopInning,
+      balls: line.balls, strikes: line.strikes, outs: line.outs,
+      runners: { first: !!offense.first, second: !!offense.second, third: !!offense.third },
+      pitcher: defense.pitcher || null,
+      currP: box || null, // {away: id, home: id} current/most recent pitcher per team
+      boxPlayers: box && box.players || null, // "ID{id}" -> {battingOrder, stats:{batting:{summary}, pitching:{numberOfPitches}}}
+      batter: offense.batter || null,
+      onDeck: offense.onDeck || null,
+      inHole: offense.inHole || null,
+      rhe: {
+        away: line.teams && line.teams.away || {},
+        home: line.teams && line.teams.home || {},
+      },
+      // seriesStatus text is only meaningful outside the regular season (API returns "Season" for RS games)
+      series: g.seriesStatus && g.seriesStatus.abbreviation !== "RS" && (g.seriesStatus.result || g.seriesStatus.description) || "",
+      seriesNote: seriesNoteOf(g.seriesStatus),
+      seriesGame: g.seriesGameNumber && g.gamesInSeries ? "Game " + g.seriesGameNumber + " of " + g.gamesInSeries : "",
+      dh: (g.gameNumber || 1) - 1, // FanGraphs doubleheader param
+      tv: simplifyTV(g.broadcasts),
+      decisions: g.decisions || null,
+    };
+    function teamBits(side) {
+      return {
+        id: side.team.id,
+        name: side.team.name,
+        abbr: side.team.abbreviation || (side.team.teamName || side.team.name).slice(0, 3).toUpperCase(),
+        club: side.team.teamName || side.team.name,
+        rec: side.leagueRecord ? side.leagueRecord.wins + "-" + side.leagueRecord.losses : "",
+        score: side.score,
+        probable: side.probablePitcher || null,
+      };
+    }
+  }
+
+  // Series standing from seriesStatus.result ("TOR leads 2-0" / "Series tied 1-1" / "TOR wins 2-1").
+  // Blank pre-game on series day 1 — the note simply doesn't appear until there's a result.
+  function seriesNoteOf(ss) {
+    const r = ss && ss.result || "";
+    const m = /^(\S{2,4}) (?:leads|wins) (\d+)-(\d+)/.exec(r);
+    if (m) return "▸" + m[1] + " " + m[2] + "-" + m[3];
+    if (/tied/i.test(r)) return "tied";
+    return "";
+  }
+
+  // Collapse regional networks to "Local"; name only national broadcasts (ESPN, Apple TV+, FOX…)
+  function simplifyTV(broadcasts) {
+    const tv = (broadcasts || []).filter(b => b.type === "TV");
+    const nationals = [...new Set(tv.filter(b => b.isNational).map(b => b.callSign || b.name))];
+    return (tv.some(b => !b.isNational) ? ["Local"] : []).concat(nationals);
+  }
+
+  // ---------- watchability / leverage ----------
+  function watchScore(game) {
+    if (game.abstract === "Live") {
+      const diff = Math.abs((game.away.score || 0) - (game.home.score || 0));
+      const inn = game.inning || 1;
+      let s = 1000 + inn * 12 - diff * 22;
+      if (isHighLeverage(game)) s += 200;
+      if (game.delayed) s -= 300;
+      return s;
+    }
+    if (game.abstract === "Preview") return 500 - game.start.getTime() / 1e10;
+    return 0; // Final at the bottom
+  }
+  function isHighLeverage(g) {
+    if (g.abstract !== "Live") return false;
+    const diff = Math.abs((g.away.score || 0) - (g.home.score || 0));
+    const runnersOn = g.runners.first || g.runners.second || g.runners.third;
+    return (g.inning >= 8 && diff <= 1) || (g.inning >= 9 && diff <= 2 && runnersOn);
+  }
+
+  // ---------- links ----------
+  function savantPlayer(p, type) {
+    if (!p) return null;
+    const slug = state.slugs.get(p.id) || p.id;
+    const stats = type === "pitcher" ? "statcast-r-pitching-mlb" : "statcast-r-hitting-mlb";
+    return "https://baseballsavant.mlb.com/savant-player/" + slug + "?stats=" + stats;
+  }
+  function scorecard(g) {
+    // livebaseballscorecards.com uses MLBAM abbreviations verbatim (incl. ATH, AZ, CWS, TB);
+    // delay/15/ = Ryan's preferred 15-second delayed view (matches broadcast delay)
+    return "https://www.livebaseballscorecards.com/delay/15/" + (state.date || currentSlateDate()) + "-" +
+      g.away.abbr + "-" + g.home.abbr + "-" + ((g.dh || 0) + 1) + ".html";
+  }
+  function gamefeed(pk) {
+    // full "Live at Bat" view (hf=liveAB), not the plain scoreboard
+    const [y, m, d] = (state.date || currentSlateDate()).split("-");
+    return "https://baseballsavant.mlb.com/gamefeed?date=" + (+m) + "/" + (+d) + "/" + y +
+      "&gamePk=" + pk + "&chartType=pitch&legendType=pitchName&playerType=pitcher" +
+      "&inning=&count=&pitchHand=&batSide=&descFilter=&ptFilter=&resultFilter=" +
+      "&hf=liveAB&sportId=1&liveAb=#" + pk;
+  }
+  // MLBAM team id -> FanGraphs team id (for /scores/game-graphs links)
+  const FGID = { 108:1, 110:2, 111:3, 145:4, 114:5, 116:6, 118:7, 142:8, 147:9, 133:10, 136:11, 139:12,
+                 140:13, 141:14, 109:15, 144:16, 112:17, 113:18, 115:19, 146:20, 117:21, 119:22, 158:23,
+                 120:24, 121:25, 143:26, 134:27, 138:28, 135:29, 137:30 };
+  function fgGraph(g) {
+    const id = FGID[g.home.id];
+    if (!id) return "https://www.fangraphs.com/scores?date=" + state.date;
+    return "https://www.fangraphs.com/scores/game-graphs?date=" + state.date + "&hometeamid=" + id + "&dh=" + (g.dh || 0);
+  }
+
+  // ---------- rendering ----------
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  function playerLink(p, type) {
+    if (!p) return "<span class='team-full'>TBD</span>";
+    return "<a href='" + savantPlayer(p, type) + "' target='_blank' rel='noopener'>" + esc(p.fullName) + "</a>";
+  }
+  function fmtTime(d) {
+    return new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" }).format(d);
+  }
+  function cardHTML(g) {
+    const live = g.abstract === "Live", final = g.abstract === "Final", pre = !live && !final;
+    const lev = state.leverage && isHighLeverage(g);
+
+    let badge;
+    // ▲ = top half, ▼ = bottom half, ━ = between innings (Middle/End)
+    const halfSym = { Top: "▲", Bottom: "▼", Middle: "━", End: "━" }[g.half] || "";
+    if (g.delayed) badge = "<span class='badge warn'>⏸ " + esc(g.detailed.toUpperCase()) + "</span>";
+    else if (live) badge = "<span class='badge live'>" + esc((halfSym ? halfSym + " " : "") + (g.inningOrd || "")) + "</span>";
+    else if (final) badge = "<span class='badge final'>FINAL" + (g.inning && g.inning !== 9 ? "/" + g.inning : "") + "</span>";
+    else badge = "<span class='badge'>" + esc(fmtTime(g.start)) + "</span>";
+
+    const meta = "";
+
+    const sA = g.away.score, sH = g.home.score;
+    const leadSide = (sA != null && sH != null && sA !== sH) ? (sA > sH ? "away" : "home") : null;
+    const teams =
+      "<div class='teams'>" +
+        ["away", "home"].map(k => {
+          const t = g[k];
+          const sCls = "score" + (t.score == null ? " dim" : (leadSide ? (k === leadSide ? " lead" : " trail") : ""));
+          return "<div class='" + sCls + "'>" + (t.score == null ? "–" : t.score) + "</div>" +
+            "<div class='team-name'><img class='logo' src='https://www.mlbstatic.com/team-logos/" + t.id + ".svg' alt='' loading='lazy'>" +
+            "<span class='team-abbr'>" + esc(t.abbr) + "</span><span class='team-full'>" + esc(t.club) + "</span></div>";
+        }).join("") +
+      "</div>";
+
+    let statebar = "";
+    if (live) {
+      const outs = [0, 1, 2].map(i => "<i class='" + (i < (g.outs || 0) ? "on" : "") + "'></i>").join("");
+      statebar =
+        "<div class='statebar'>" +
+          "<span class='bases' title='Runners on base'>" +
+            "<i class='b2 " + (g.runners.second ? "on" : "") + "'></i>" +
+            "<i class='b3 " + (g.runners.third ? "on" : "") + "'></i>" +
+            "<i class='b1 " + (g.runners.first ? "on" : "") + "'></i>" +
+          "</span>" +
+          "<span class='bso'>" + (g.balls ?? 0) + "-" + (g.strikes ?? 0) + "</span>" +
+          "<span class='outdots' title='Outs'>" + outs + "</span>" +
+          "<span class='hstat'>H " + esc(g.rhe.away.hits ?? "–") + "/" + esc(g.rhe.home.hits ?? "–") + "</span>" +
+        "</div>";
+    }
+
+    let matchup = "";
+    if (live) {
+      const pRec = g.pitcher && g.boxPlayers && g.boxPlayers["ID" + g.pitcher.id] || null;
+      const pc = pRec && pRec.stats && pRec.stats.pitching && pRec.stats.pitching.numberOfPitches;
+      const bRec = g.batter && g.boxPlayers && g.boxPlayers["ID" + g.batter.id] || null;
+      const spot = bRec && bRec.battingOrder ? Math.round(+bRec.battingOrder / 100) : null;
+      const bSum = bRec && bRec.stats && bRec.stats.batting && bRec.stats.batting.summary || "";
+      const bInfo = [spot ? "#" + spot : "", bSum].filter(Boolean).join(" · ");
+      matchup = "<div class='matchup'>" +
+        "<div class='row'><span class='lbl'>PITCHING</span>" + playerLink(g.pitcher, "pitcher") +
+          (pc != null ? "<span class='dueup'>· " + pc + (pc === 1 ? " pitch" : " pitches") + "</span>" : "") + "</div>" +
+        "<div class='row'><span class='lbl'>AT BAT</span>" + playerLink(g.batter, "batter") +
+          (bInfo ? "<span class='dueup'>(" + esc(bInfo) + ")</span>" : "") +
+          (g.onDeck ? "<span class='dueup'>· due up: " + playerLinkPlain(g.onDeck) + "</span>" : "") +
+        "</div></div>";
+    } else if (pre) {
+      matchup = "<div class='matchup'>" +
+        "<div class='row'><span class='lbl'>" + esc(g.away.abbr) + "</span>" + playerLink(g.away.probable, "pitcher") + "</div>" +
+        "<div class='row'><span class='lbl'>" + esc(g.home.abbr) + "</span>" + playerLink(g.home.probable, "pitcher") + "</div>" +
+        "</div>";
+    } else if (final && g.decisions) {
+      const d = g.decisions;
+      matchup = "<div class='matchup'><div class='row'><span class='lbl'>W/L</span><span class='dueup'>" +
+        (d.winner ? "W: " + esc(d.winner.fullName) : "") + (d.loser ? " · L: " + esc(d.loser.fullName) : "") +
+        (d.save ? " · SV: " + esc(d.save.fullName) : "") + "</span></div></div>";
+    }
+
+    const ctxBits = [g.seriesGame, g.seriesNote, g.series, g.tv.join(", "), oddsText(g)].filter(Boolean);
+    const context = ctxBits.length ? "<div class='context'>" + ctxBits.map(esc).join(" · ") + "</div>" : "";
+
+    const openIds = live && g.currP
+      ? [g.currP.away, g.currP.home].filter(Boolean)
+      : (live ? [g.pitcher].filter(Boolean).map(p => p.id)
+              : [g.away.probable, g.home.probable].filter(Boolean).map(p => p.id));
+    const links =
+      "<div class='links'>" +
+        "<button class='pill' data-open='" + g.pk + "' data-pitchers='" + openIds.join(",") + "' title='Opens the Savant gamefeed + pitcher pages as browser tabs (allow pop-ups if blocked)'>⧉ Open game tabs</button>" +
+        "<a class='pill' href='" + scorecard(g) + "' target='_blank' rel='noopener'>Scorecard</a>" +
+        "<a class='pill' href='" + fgGraph(g) + "' target='_blank' rel='noopener'>FG graph</a>" +
+      "</div>";
+
+    return "<div class='card" + (lev ? " leverage" : "") + (state.marked.has(g.pk) ? " marked" : "") + "' data-pk='" + g.pk + "' id='card-" + g.pk + "'>" +
+      "<div class='card-top'>" + badge + (lev ? "<span class='lev-chip' title='High leverage'>⚡</span>" : "") +
+      "<span class='meta'>" + meta + "</span></div>" +
+      teams + statebar + matchup + (live && state.marked.has(g.pk) ? abZoneHTML(g) : "") + context + links + "</div>";
+
+    function playerLinkPlain(p) {
+      return "<a href='" + savantPlayer(p, "batter") + "' target='_blank' rel='noopener'>" + esc(shortName(p.fullName)) + "</a>";
+    }
+    function shortName(n) { const parts = (n || "").split(" "); return parts.length > 1 ? parts[0][0] + ". " + parts.slice(1).join(" ") : n; }
+  }
+
+  function render() {
+    const grid = document.getElementById("grid");
+    if (!state.games.length) {
+      grid.innerHTML = "<div class='empty'>No MLB games scheduled today.</div>";
+      return;
+    }
+    let games = [...state.games];
+    // selection doesn't create its own section — it just wins the ordering (marked first
+    // within the flow), and the card is enlarged by its zone panel. Grid stays continuous.
+    const mk = g => state.marked.has(g.pk) ? 0 : 1;
+    if (state.sortWatch) {
+      const grp = g => g.abstract === "Live" ? 0 : g.abstract === "Final" ? 2 : 1;
+      games.sort((a, b) => grp(a) - grp(b) || mk(a) - mk(b) || watchScore(b) - watchScore(a));
+    } else {
+      games.sort((a, b) => mk(a) - mk(b) || a.start - b.start);
+    }
+    let html = "", lastGroup = null;
+    for (const g of games) {
+      if (state.sortWatch) {
+        const group = g.abstract === "Live" ? "Live" : g.abstract === "Final" ? "Final" : "Upcoming";
+        if (group !== lastGroup) { html += "<div class='section-label'>" + group + "</div>"; lastGroup = group; }
+      }
+      html += cardHTML(g);
+    }
+    grid.innerHTML = html;
+    for (const card of grid.querySelectorAll(".card")) {
+      card.addEventListener("click", e => {
+        if (e.target.closest("a, button, input, .delaystrip")) return; // interactive bits keep their own behavior
+        const pk = +card.dataset.pk;
+        state.marked.has(pk) ? state.marked.delete(pk) : state.marked.add(pk);
+        persistMarked();
+        // newly selected live game: fetch its at-bat right away so the zone appears fast
+        const g = state.games.find(x => x.pk === pk);
+        if (state.marked.has(pk) && g && g.abstract === "Live" && !state.abData.has(pk))
+          fetchAB(pk).then(render);
+        render(); // selection changes the ordering (pinned to top / restored)
+      });
+    }
+    for (const strip of grid.querySelectorAll(".delaystrip")) {
+      const pk = +strip.dataset.dpk;
+      const num = strip.querySelector("input[type=number]"), rng = strip.querySelector("input[type=range]");
+      const set = v => { pitchDelays[pk] = Math.max(0, +v || 0); saveDelays(); };
+      rng.addEventListener("input", () => { num.value = rng.value; set(rng.value); });
+      num.addEventListener("input", () => { rng.value = Math.min(+num.value || 0, 60); set(num.value); });
+    }
+    for (const btn of grid.querySelectorAll("[data-open]")) {
+      btn.addEventListener("click", () => {
+        const pk = btn.getAttribute("data-open");
+        const ids = (btn.getAttribute("data-pitchers") || "").split(",").filter(Boolean);
+        let blocked = 0;
+        if (!window.open(gamefeed(pk), "_blank")) blocked++;
+        for (const id of ids) {
+          const slug = state.slugs.get(+id) || id;
+          if (!window.open("https://baseballsavant.mlb.com/savant-player/" + slug + "?stats=statcast-r-pitching-mlb", "_blank")) blocked++;
+        }
+        if (blocked) showToast("Chrome blocked " + blocked + " of the tabs (it allows one per click by default). One-time fix: click the pop-up blocked icon at the right end of the address bar and choose “Always allow pop-ups” — after that this button opens all tabs at once.");
+      });
+    }
+  }
+
+  let toastTimer = 0;
+  function showToast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = "none"; }, 9000);
+  }
+
+  function renderHeader() {
+    const el = document.getElementById("updated");
+    if (state.lastErr && !state.lastOk) {
+      el.innerHTML = "<span class='err'>can’t reach MLB API</span>";
+    } else if (state.lastOk) {
+      const secs = Math.round((Date.now() - state.lastOk.getTime()) / 1000);
+      el.innerHTML = (state.lastErr ? "<span class='err'>stale</span> · " : "") + "updated " + (secs < 5 ? "just now" : secs + "s ago");
+    }
+    const banner = document.getElementById("banner");
+    if (state.lastErr && !state.lastOk) {
+      banner.textContent = "Couldn’t load data from statsapi.mlb.com (" + state.lastErr + "). If this persists, it may be a network/CORS issue — tell Claude and the /mlb skill can fall back to snapshot mode.";
+      banner.classList.add("show");
+    } else banner.classList.remove("show");
+  }
+
+  // ---------- main loop ----------
+  let oddsTimer = 0;
+  async function tick() {
+    state.date = currentSlateDate();
+    document.getElementById("hdrDate").textContent = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric" }).format(new Date(state.date + "T12:00:00Z"));
+    try {
+      const raw = await fetchSchedule(state.date);
+      // refresh linescores for live games (tiny endpoint carries current pitcher/batter/runners)
+      const liveGames = raw.filter(g => g.status && g.status.abstractGameState === "Live");
+      const [lines, boxes] = await Promise.all([
+        Promise.all(liveGames.map(g => fetchLinescore(g.gamePk).catch(() => null))),
+        Promise.all(liveGames.map(g => fetchBox(g.gamePk).catch(() => null))),
+      ]);
+      const lineByPk = new Map(liveGames.map((g, i) => [g.gamePk, lines[i]]));
+      const boxByPk = new Map(liveGames.map((g, i) => [g.gamePk, boxes[i]]));
+      state.games = raw.map(g => normalize(g, lineByPk.get(g.gamePk), boxByPk.get(g.gamePk)));
+      state.lastOk = new Date(); state.lastErr = null;
+      captureOddsSnaps();
+      // pitch sequences for SELECTED live games only
+      const watched = state.games.filter(g => g.abstract === "Live" && state.marked.has(g.pk));
+      await Promise.all(watched.map(g => fetchAB(g.pk)));
+      for (const pk of [...state.abData.keys()])
+        if (!watched.some(g => g.pk === pk)) { state.abData.delete(pk); state.pitchSeen.delete(pk); }
+
+      // slug cache for all linkable players
+      const ids = [];
+      for (const g of state.games) {
+        for (const p of [g.pitcher, g.batter, g.onDeck, g.inHole, g.away.probable, g.home.probable]) if (p) ids.push(p.id);
+        if (g.currP) { for (const id of [g.currP.away, g.currP.home]) if (id) ids.push(id); }
+      }
+      fetchSlugs(ids).then(render);
+
+      if (Date.now() - oddsTimer > ODDS_MS) { oddsTimer = Date.now(); fetchOdds(state.date).then(() => { captureOddsSnaps(); render(); }); }
+      render();
+    } catch (e) {
+      state.lastErr = e.message || String(e);
+    }
+    renderHeader();
+    updateGuideStaleness();
+  }
+
+  function updateGuideStaleness() {
+    const wrap = document.querySelector("#guide [data-guide-date]");
+    const section = document.getElementById("guide");
+    if (!wrap) { if (section) section.style.display = "none"; return; }
+    const staleEl = document.getElementById("guideStale");
+    if (staleEl && state.date && wrap.dataset.guideDate !== state.date)
+      staleEl.textContent = "— from a previous day; run /mlb in Claude for a fresh one";
+  }
+
+  // ---------- controls ----------
+  function bindToggle(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener("click", () => {
+      state[key] = !state[key];
+      el.setAttribute("aria-pressed", String(state[key]));
+      render();
+    });
+  }
+  bindToggle("togSort", "sortWatch");
+  bindToggle("togLev", "leverage");
+  document.getElementById("btnRefresh").addEventListener("click", tick);
+  document.getElementById("btnTheme").addEventListener("click", () => {
+    const r = document.documentElement;
+    r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("mlbTheme", r.dataset.theme); } catch (e) {}
+  });
+  try { if (localStorage.getItem("mlbTheme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (e) {}
+
+  tick();
+  setInterval(tick, POLL_MS);
+  setInterval(renderHeader, 5000);
+  // silently release delay-held pitches between ticks (skip while adjusting a delay strip)
+  let lastVisCount = "";
+  setInterval(() => {
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".delaystrip")) return;
+    const sig = [...state.abData.keys()].map(pk => {
+      const v = visiblePitches(pk); return pk + ":" + (v ? v.events.length : 0);
+    }).join("|");
+    if (sig !== lastVisCount) { lastVisCount = sig; render(); }
+  }, 3000);
+})();
+</script>
+<script>
+(() => {
+  "use strict";
+  /* ----- Tabs ----- */
+  const tabLive = document.getElementById("tabLive");
+  const tabWC = document.getElementById("tabWC");
+  const liveEls = ["banner", "grid", "guide"].map(id => document.getElementById(id));
+  const wcview = document.getElementById("wcview");
+  function setTab(which) {
+    const wc = which === "wc";
+    liveEls.forEach(el => { if (el) el.hidden = wc; });
+    wcview.hidden = !wc;
+    tabLive.classList.toggle("active", !wc);
+    tabWC.classList.toggle("active", wc);
+    try { localStorage.setItem("mlbTab", which); } catch (e) {}
+  }
+  tabLive.addEventListener("click", () => setTab("live"));
+  tabWC.addEventListener("click", () => setTab("wc"));
+  let start = "live";
+  try { start = localStorage.getItem("mlbTab") || "live"; } catch (e) {}
+  if (location.hash === "#wildcard") start = "wc";
+  if (start === "wc") setTab("wc");
+
+  /* ----- "vs field" column: live remaining-schedule counts ----- */
+  // Field = teams within ~5 games of the WC cut (both sides). Static GB as of the
+  // table's data date; refreshed when /mlb regenerates the WILDCARD block.
+  const FIELD = {
+    CLE:{id:114, name:"Guardians", gb:0.0,  lg:"AL"},
+    TOR:{id:141, name:"Blue Jays", gb:1.5,  lg:"AL"},
+    BAL:{id:110, name:"Orioles",   gb:1.5,  lg:"AL"},
+    TEX:{id:140, name:"Rangers",   gb:2.0,  lg:"AL"},
+    SEA:{id:136, name:"Mariners",  gb:4.0,  lg:"AL"},
+    MIN:{id:142, name:"Twins",     gb:4.0,  lg:"AL"},
+    DET:{id:116, name:"Tigers",    gb:4.5,  lg:"AL"},
+    CHC:{id:112, name:"Cubs",      gb:-4.5, lg:"NL"},
+    PHI:{id:143, name:"Phillies",  gb:-3.0, lg:"NL"},
+    AZ: {id:109, name:"D-backs",   gb:0.0,  lg:"NL"},
+    SD: {id:135, name:"Padres",    gb:0.5,  lg:"NL"},
+    MIA:{id:146, name:"Marlins",   gb:4.5,  lg:"NL"},
+    STL:{id:138, name:"Cardinals", gb:5.0,  lg:"NL"}
+  };
+  const BYID = {};
+  Object.keys(FIELD).forEach(k => { BYID[FIELD[k].id] = Object.assign({abbr:k}, FIELD[k]); });
+  const wcTip = document.getElementById("wcTip");
+
+  async function fillVsField() {
+    const start = new Date().toISOString().slice(0, 10);
+    const url = "https://statsapi.mlb.com/api/v1/schedule?sportId=1&gameType=R"
+      + "&startDate=" + start + "&endDate=2026-10-05"
+      + "&fields=dates,date,games,gamePk,status,abstractGameState,teams,away,home,team,id";
+    let data;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      data = await r.json();
+    } catch (e) {
+      document.querySelectorAll(".wc-vsf").forEach(td => {
+        td.innerHTML = '<span title="Could not fetch remaining schedule">?</span>';
+      });
+      return;
+    }
+    const counts = {};
+    Object.values(FIELD).forEach(t => { counts[t.id] = new Map(); });
+    for (const day of (data.dates || [])) {
+      for (const g of (day.games || [])) {
+        if (g.status && g.status.abstractGameState === "Final") continue;
+        const a = g.teams.away.team.id, h = g.teams.home.team.id;
+        const A = BYID[a], H = BYID[h];
+        if (!A || !H || A.lg !== H.lg) continue;
+        counts[a].set(h, (counts[a].get(h) || 0) + 1);
+        counts[h].set(a, (counts[h].get(a) || 0) + 1);
+      }
+    }
+    document.querySelectorAll(".wc-vsf").forEach(td => {
+      const me = FIELD[td.dataset.abbr];
+      const m = counts[me.id] || new Map();
+      let total = 0;
+      // every OTHER field team in my league, zero-game opponents included
+      const opps = Object.keys(FIELD)
+        .filter(k => k !== td.dataset.abbr && FIELD[k].lg === me.lg)
+        .map(k => ({ opp: FIELD[k], n: m.get(FIELD[k].id) || 0 }))
+        .sort((x, y) => (y.n - x.n) || (x.opp.gb - y.opp.gb));
+      let zeroDividerDone = false;
+      const parts = opps.map(({opp, n}) => {
+        total += n;
+        const diff = opp.gb - me.gb;   // + : I'm ahead of them, - : behind
+        let cls = "wc-ev", txt = "even";
+        if (diff > 0) { cls = "wc-up"; txt = "+" + diff.toFixed(1); }
+        else if (diff < 0) { cls = "wc-dn"; txt = "−" + Math.abs(diff).toFixed(1); }
+        let line = "<b>" + n + "</b> vs <span" + (n === 0 ? ' class="wc-zero"' : "") + ">"
+          + opp.name + '</span> <span class="' + cls + '">(' + txt + ")</span>";
+        if (n === 0 && !zeroDividerDone) { zeroDividerDone = true; line = '<span class="wc-div"></span>' + line; }
+        return line;
+      });
+      td.innerHTML = "<u>" + total + "</u>";
+      td.addEventListener("mousemove", e => {
+        wcTip.style.display = "block";
+        wcTip.innerHTML = "<b>" + (total || "No") + " remaining games vs the field</b>"
+          + '<div class="t2">' + parts.join("<br>") + "</div>";
+        const w = wcTip.offsetWidth;
+        wcTip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + "px";
+        wcTip.style.top = (e.clientY + 16) + "px";
+      });
+      td.addEventListener("mouseleave", () => { wcTip.style.display = "none"; });
+    });
+  }
+  fillVsField();
+})();
+</script>
+<script>
+(() => {
+  "use strict";
+  /* Wild-card rank history: daily snapshots + bump lines (Option 1, mockups17) */
+  const KEY = "mlbWCRankHist", TZP = "America/Los_Angeles", MAXD = 21, SHOW = 5;
+  const IDS = {NYY:147,BOS:111,CLE:114,TEX:140,BAL:110,TOR:141,SEA:136,MIN:142,DET:116,
+    KC:118,ATH:133,LAA:108,CHC:112,PHI:143,SD:135,AZ:109,MIA:146,STL:138,PIT:134,
+    CIN:113,WSH:120,NYM:121,SF:137,COL:115};
+  const LG_OF = {}; ["NYY","BOS","CLE","TEX","BAL","TOR","SEA","MIN","DET","KC","ATH","LAA"]
+    .forEach(a => LG_OF[a] = "AL");
+  ["CHC","PHI","SD","AZ","MIA","STL","PIT","CIN","WSH","NYM","SF","COL"]
+    .forEach(a => LG_OF[a] = "NL");
+  const COLOR = {NYY:"#003087",BOS:"#BD3039",CLE:"#E31937",TEX:"#003278",BAL:"#DF4601",
+    TOR:"#134A8E",SEA:"#005C5C",MIN:"#D31145",DET:"#FA4616",KC:"#004687",ATH:"#EFB21E",
+    LAA:"#BA0021",CHC:"#0E3386",PHI:"#E81828",SD:"#2F241D",AZ:"#A71930",MIA:"#00A3E0",
+    STL:"#C41E3A",PIT:"#D8A712",CIN:"#C6011F",WSH:"#AB0003",NYM:"#002D72",SF:"#FD5A1E",
+    COL:"#33006F"};
+  // reconstructed seed so history isn't empty on day one (real snapshots overwrite forward)
+  const SEED = {
+    "2026-08-23": {AL:{NYY:1,BOS:2,TEX:3,CLE:4,MIN:5,TOR:6,BAL:7,DET:8,SEA:9,KC:10,ATH:11,LAA:12},
+                   NL:{CHC:1,PHI:2,SD:3,AZ:4,STL:5,MIA:6,PIT:7,CIN:8,WSH:9,NYM:10,SF:11,COL:12}},
+    "2026-08-24": {AL:{NYY:1,BOS:2,TEX:3,CLE:4,BAL:5,TOR:6,MIN:7,DET:8,SEA:9,KC:10,ATH:11,LAA:12},
+                   NL:{CHC:1,PHI:2,SD:3,AZ:4,MIA:5,STL:6,PIT:7,CIN:8,WSH:9,NYM:10,SF:11,COL:12}},
+    "2026-08-25": {AL:{NYY:1,BOS:2,CLE:3,TEX:4,TOR:5,BAL:6,MIN:7,SEA:8,DET:9,KC:10,ATH:11,LAA:12},
+                   NL:{CHC:1,PHI:2,SD:3,AZ:4,MIA:5,STL:6,PIT:7,CIN:8,WSH:9,NYM:10,SF:11,COL:12}},
+    "2026-08-26": {AL:{NYY:1,BOS:2,CLE:3,TEX:4,BAL:5,TOR:6,SEA:7,MIN:8,DET:9,KC:10,ATH:11,LAA:12},
+                   NL:{CHC:1,PHI:2,SD:3,AZ:4,MIA:5,STL:6,PIT:7,CIN:8,WSH:9,NYM:10,SF:11,COL:12}},
+    "2026-08-27": {AL:{NYY:1,BOS:2,CLE:3,TEX:4,BAL:5,TOR:6,SEA:7,MIN:8,DET:9,KC:10,ATH:11,LAA:12},
+                   NL:{CHC:1,PHI:2,SD:3,AZ:4,MIA:5,STL:6,PIT:7,CIN:8,WSH:9,NYM:10,SF:11,COL:12}}
+  };
+  function ptDate(){
+    return new Intl.DateTimeFormat("en-CA", {timeZone: TZP, year:"numeric", month:"2-digit", day:"2-digit"})
+      .format(new Date());
+  }
+  function loadHist(){
+    let h = {};
+    try { h = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+    for (const d of Object.keys(SEED)) if (!h[d]) h[d] = SEED[d];
+    return h;
+  }
+  function saveHist(h){
+    const dates = Object.keys(h).sort().slice(-MAXD);
+    const out = {}; dates.forEach(d => out[d] = h[d]);
+    try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+    return out;
+  }
+  async function liveRanks(){
+    const url = "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=2026&standingsTypes=regularSeason"
+      + "&fields=records,league,id,teamRecords,team,id,divisionRank,wins,losses,winningPercentage";
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    const byLg = {AL: [], NL: []};
+    const ID2AB = {}; Object.keys(IDS).forEach(a => ID2AB[IDS[a]] = a);
+    for (const rec of (data.records || [])) {
+      const lg = rec.league && rec.league.id === 103 ? "AL" : "NL";
+      for (const tr of (rec.teamRecords || [])) {
+        if (tr.divisionRank === "1") continue;                 // division leaders excluded
+        const ab = ID2AB[tr.team.id];
+        if (!ab) continue;
+        byLg[lg].push({ab, pct: parseFloat(tr.winningPercentage || "0"), w: tr.wins || 0});
+      }
+    }
+    const out = {AL: {}, NL: {}};
+    for (const lg of ["AL", "NL"]) {
+      byLg[lg].sort((a, b) => (b.pct - a.pct) || (b.w - a.w))
+        .forEach((t, i) => { out[lg][t.ab] = i + 1; });
+    }
+    return out;
+  }
+  function render(hist){
+    const dates = Object.keys(hist).sort().reverse().slice(0, SHOW);   // newest first
+    document.querySelectorAll(".wc-hist").forEach(panel => {
+      const lg = panel.dataset.lg;
+      const wrap = panel.parentElement;
+      const rows = [...wrap.querySelectorAll("tr[data-team]")];
+      if (!rows.length) return;
+      const table = wrap.querySelector("table");
+      // offsetTop-based: immune to page zoom (dashboard uses zoom 1.25)
+      const yOf = tr => tr.offsetTop + tr.offsetHeight / 2 + table.offsetTop;
+      const slotY = rows.map(yOf);
+      const rowOf = {}; rows.forEach((r, i) => rowOf[r.dataset.team] = i);
+      const cutRow = wrap.querySelector("tr.wc-cut");
+      const cutY = cutRow ? yOf(cutRow) : null;
+      const W = Math.max(200, Math.min(290, panel.clientWidth || 240));
+      const H = table.offsetHeight + 16;
+      const xd = d => 10 + d * ((W - 34) / (SHOW - 1));
+      const dark = document.documentElement.dataset.theme === "dark";
+      let svg = "";
+      for (let d = 0; d < dates.length; d++) {
+        svg += '<line x1="' + xd(d) + '" y1="4" x2="' + xd(d) + '" y2="' + (H - 16) + '" stroke="var(--surface-2)"/>'
+          + '<text x="' + xd(d) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="9" fill="var(--text-muted)">'
+          + dates[d].slice(8) + "</text>";
+      }
+      if (cutY !== null)
+        svg += '<line x1="0" y1="' + cutY + '" x2="' + (W - 22) + '" y2="' + cutY
+          + '" stroke="var(--text-muted)" stroke-dasharray="4 3" opacity="0.55"/>';
+      const teams = rows.map(r => r.dataset.team);
+      for (const ab of teams) {
+        const pts = [];
+        for (let d = 0; d < dates.length; d++) {
+          const rk = hist[dates[d]] && hist[dates[d]][lg] && hist[dates[d]][lg][ab];
+          if (rk && rk >= 1 && rk <= slotY.length) pts.push([xd(d), slotY[rk - 1]]);
+        }
+        if (pts.length < 2) continue;
+        const pl = pts.map(p => p.join(",")).join(" ");
+        const mut = rowOf[ab] >= 9 ? 0.35 : 0.9;
+        if (dark) svg += '<polyline points="' + pl + '" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="3.5" stroke-linejoin="round"/>';
+        else svg += '<polyline points="' + pl + '" fill="none" stroke="var(--surface-1)" stroke-width="3.5" stroke-linejoin="round"/>';
+        svg += '<polyline points="' + pl + '" fill="none" stroke="' + COLOR[ab] + '" stroke-width="2" stroke-linejoin="round" opacity="' + mut + '"/>';
+      }
+      for (const ab of teams) {
+        const rk = hist[dates[0]] && hist[dates[0]][lg] && hist[dates[0]][lg][ab];
+        const y = (rk && rk >= 1 && rk <= slotY.length) ? slotY[rk - 1] : slotY[rowOf[ab]];
+        svg += '<circle cx="' + xd(0) + '" cy="' + y + '" r="3.6" fill="' + COLOR[ab]
+          + '" opacity="' + (rowOf[ab] >= 9 ? 0.45 : 1) + '"/>';
+      }
+      panel.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '">' + svg + "</svg>";
+    });
+  }
+  async function run(){
+    let hist = loadHist();
+    try {
+      const today = ptDate();
+      hist[today] = await liveRanks();                 // overwrite today's snapshot with live
+      hist = saveHist(hist);
+    } catch (e) { hist = saveHist(hist); }             // offline: keep seed/stored history
+    requestAnimationFrame(() => render(hist));
+    let tmr = null;
+    window.addEventListener("resize", () => { clearTimeout(tmr); tmr = setTimeout(() => render(hist), 200); });
+    const th = document.getElementById("btnTheme");
+    if (th) th.addEventListener("click", () => setTimeout(() => render(hist), 50));
+    const wcBtn = document.getElementById("tabWC");
+    if (wcBtn) wcBtn.addEventListener("click", () => setTimeout(() => render(hist), 50));
+  }
+  run();
+})();
+</script>
+</body>
+</html>

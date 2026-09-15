@@ -28,6 +28,12 @@
     --mark-ring-w: 0px;     /* no extra ring width — just the 1px border */
     --bat-ink: rgba(11,11,11,0.22);   /* batter-side lens (F4, mockups22) */
     --bat-fig: rgba(11,11,11,0.12);   /* batter figure (mockups26: 243px, feet y223, x132) */
+    /* v1.40 pitch-result colors — Ryan's scheme from the mockups33 tuner (9/12); re-tune there */
+    --pitch-ball: #545454;
+    --pitch-ball-num: #ffffff;   /* the pitch number inside a ball dot */
+    --pitch-strike: #ba3434;
+    --pitch-foul: #e08484;
+    --pitch-inplay: #42ab1b;
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
@@ -43,6 +49,11 @@
     --chip-bg: rgba(255,255,255,0.06);
     --card-shadow: none;
     --pop-shadow: 0 5px 14px rgba(215,215,210,0.12); /* subtle grey lift on dark */
+    --pitch-ball: #c3c2b7;       /* dark scheme unchanged (Ryan mostly uses light) */
+    --pitch-ball-num: #1a1a19;
+    --pitch-strike: #d03b3b;
+    --pitch-foul: #b98200;
+    --pitch-inplay: #3987e5;
     --mark-ring: #85837d;   /* lighter grey than the default border */
     --mark-ring-w: 0px;
     --bat-ink: rgba(255,255,255,0.18); /* a notch lighter than light mode reads stronger on dark */
@@ -86,6 +97,41 @@
     border-radius: 999px; padding: 4px 11px; font-size: 12.5px; cursor: pointer;
   }
   button.plain:hover, .tog:hover { border-color: var(--text-muted); }
+  button.plain[aria-expanded="true"] { color: var(--text-primary); border-color: var(--link); }
+
+  /* v1.46 break arrow (mockups38): the newest pitch's spin-induced movement, drawn under the dots
+     from the feed's pfxX/pfxZ; a small pitcher-hand fist in the bottom corner on the arm side.
+     The "Arrow…" header button opens this panel so the look can be re-tuned any time. */
+  .arrowwrap { position: relative; }
+  #arrowPop {
+    display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+    width: 332px; max-width: calc(100vw - 32px); padding: 10px 12px 8px; background: var(--surface-1);
+    border: 1px solid var(--hairline); border-radius: 10px; box-shadow: var(--pop-shadow);
+    font-size: 12px; color: var(--text-secondary); cursor: default;
+  }
+  #arrowPop.open { display: block; }
+  #arrowPop .row { display: grid; grid-template-columns: 82px 1fr 46px; align-items: center; gap: 8px; margin: 5px 0; }
+  #arrowPop .row label { color: var(--text-muted); font-size: 11.5px; letter-spacing: .02em; white-space: nowrap; }
+  #arrowPop .row output { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  #arrowPop input[type=range] { width: 100%; margin: 0; accent-color: var(--link); }
+  #arrowPop .seg { display: inline-flex; justify-self: start; border: 1px solid var(--hairline); border-radius: 999px; overflow: hidden; grid-column: 2 / 4; }
+  #arrowPop .seg button { background: transparent; border: 0; color: var(--text-muted); font-size: 11.5px; white-space: nowrap;
+                          padding: 3px 9px; cursor: pointer; border-right: 1px solid var(--hairline); }
+  #arrowPop .seg button:last-child { border-right: 0; }
+  #arrowPop .seg button.on { background: var(--chip-bg); color: var(--text-primary); }
+  #arrowPop .row .swatch { grid-column: 2 / 4; display: flex; align-items: center; gap: 6px; }
+  #arrowPop .swatch .seg { grid-column: auto; }
+  #arrowPop input[type=color] { width: 26px; height: 20px; padding: 0; border: 1px solid var(--hairline);
+                                border-radius: 5px; background: var(--surface-1); cursor: pointer; }
+  #arrowPop input[type=color]:disabled { opacity: .35; cursor: default; }
+  #arrowPop .hr { border-top: 1px solid var(--gridline); margin: 7px 0 5px; }
+  #arrowPop .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  #arrowPop .foot button { font-size: 11.5px; padding: 2px 9px; }
+  #arrowPop .foot .note { font-size: 10.5px; color: var(--text-muted); }
+  svg .brk { fill: none; stroke-linecap: round; }
+  svg .brk0 { fill: none; stroke-width: 1.1; }
+  svg .hsym { fill: var(--text-muted); }
+  svg .hsym2 { fill: none; stroke: var(--surface-2); stroke-width: 1.1; stroke-linecap: round; }
 
   #banner {
     display: none; margin: 12px 18px 0; padding: 10px 14px;
@@ -121,9 +167,25 @@
     box-shadow: 0 0 0 var(--mark-ring-w, 1px) var(--mark-ring, var(--link)), var(--pop-shadow);
     transform: translateY(-2px);
   }
+  /* v1.41 drag-to-reorder among SELECTED cards: a grip in the top-left corner (hover), the card
+     is only draggable while the grip is held so sliders/links inside the card are untouched */
+  .card.marked { position: relative; }
+  .card .grip { display: none; position: absolute; left: 8px; top: 5px; padding: 2px 5px; border-radius: 5px;
+                font-size: 13px; line-height: 1; color: var(--text-muted); opacity: 0; cursor: grab; user-select: none;
+                transition: opacity .15s ease; z-index: 4; }
+  .card.marked .grip { display: block; }
+  .card.marked:hover .grip { opacity: .5; }
+  .card .grip:hover { opacity: 1 !important; background: var(--chip-bg); }
+  .card.dragging { opacity: .4; }
+  .card.drop-before::before, .card.drop-after::before {
+    content: ""; position: absolute; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--link); }
+  .card.drop-before::before { left: -9px; }  /* centered in the 14px grid gap */
+  .card.drop-after::before  { right: -9px; }
   .card.leverage {
-    border-color: var(--serious);
-    box-shadow: 0 0 0 1px var(--serious), 0 0 14px rgba(236,131,90,0.25);
+    /* one solid 2px line (an outline straddling the border edge) instead of 1px border + 1px
+       ring — the ring rendered as a second line in Firefox (9/12). Outline = no layout change. */
+    border-color: var(--serious); outline: 2px solid var(--serious); outline-offset: -1px;
+    box-shadow: 0 0 14px rgba(236,131,90,0.25);
   }
   .card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 133px; } /* 114 + 19 block shift (slider-tuned) */
   .badge {
@@ -176,15 +238,22 @@
   .bases i.on { background: var(--warning); }
 
   /* current-at-bat strike zone (selected live games only) — pitcher's view */
-  .abzone { display: flex; gap: 14px; align-items: flex-start; padding-left: 48px; position: relative; } /* slider-tuned */
+  .abzone { display: flex; gap: 0; align-items: flex-start; padding-left: 52px; position: relative; } /* slider-tuned: 48/14 → 52/0 (mockups34, 9/12) */
   .pl { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-variant-numeric: tabular-nums; padding-top: 4px;
-        width: 69px; flex: 0 0 69px; overflow-wrap: break-word; } /* FIXED width (slider-tuned) so the zone never drifts with list text */
+        width: 69px; flex: 0 0 69px; min-width: 0; overflow-wrap: break-word; } /* FIXED width (slider-tuned) so the zone never drifts with list text; min-width:0 so a long line can't widen it (9/12) */
   .pl span { display: inline-flex; align-items: center; gap: 5px; }
+  .pl .plp { white-space: nowrap; } /* v1.40 "C - SI 91": never wraps; a long "*B - CH 88" spills a few px into the gap instead of widening .pl */
   .pl i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
   .pl .plmore { color: var(--text-muted); font-style: italic; }
   .pl .plresult { color: var(--text-primary); font-weight: 700; }
-  .pl .plresult.nowrap { white-space: nowrap; } /* short results ("! Groundout") may spill a few px into the 14px gap rather than wrap */
+  .pl .plresult.nowrap { white-space: nowrap; } /* short results ("! Groundout") spill a few px past the column rather than wrap */
+  .pl { position: relative; z-index: 1; } /* gap is 0 now: a spilled result paints OVER the box's left edge instead of hiding under it (9/12) */
   .pl .plloc { color: var(--text-muted); font-size: 10.5px; padding-left: 12px; margin-top: -2px; } /* where the ball went */
+  .pl .plwho { color: var(--text-muted); font-size: 10.5px; white-space: nowrap; gap: 4px; } /* v1.47 batter (#spot) / v pitcher while browsing */
+  .pl .plwho b { color: var(--text-secondary); font-weight: 600; }
+  .pl .mlogo { width: 11px; height: 11px; vertical-align: -1px; }
+  .pl .plp { cursor: pointer; }
+  .pl .plp.cutoff { opacity: .35; }             /* v1.47 pitches after the clicked one */
   .pl .plcount { color: var(--text-muted); padding-left: 12px; font-size: 13px; } /* +2px (Ryan, 8/31) */ /* running count, K4-style minus parens */
   /* previous-PA browser: arrows only while hovering the grey panel itself */
   .abzone svg .panav { opacity: 0; transition: opacity .18s ease; }
@@ -193,7 +262,7 @@
   .abzone svg .zarr.dim { opacity: .3; cursor: default; }
   .abzone svg .patag { cursor: pointer; }
   .abzone svg .zhit { fill: transparent; cursor: pointer; }
-  .pitchlegend { position: absolute; left: 48px; bottom: -6px; z-index: 3;
+  .pitchlegend { position: absolute; left: 52px; bottom: -6px; z-index: 3;
                  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
                  border: 1px solid var(--hairline); border-radius: 7px; padding: 2px 8px;
                  font-size: 9.5px; color: var(--text-muted); opacity: 0; pointer-events: none;
@@ -267,6 +336,7 @@
     padding: 4px 13px;
   }
   .tabs button + button { border-left: 1px solid var(--hairline); }
+  .tabs button.active + button, .tabs button + button.active { border-left-color: transparent; } /* v1.48: the active ring already draws that edge (Ryan saw a double line) */
   .tabs button.active { color: var(--text-primary); background: var(--chip-bg); box-shadow: inset 0 0 0 1px var(--link); border-radius: 999px; }
   .tabs button:not(.active):hover { color: var(--text-secondary); }
   #wcview { padding: 14px 18px 4px; max-width: 760px; }
@@ -312,12 +382,17 @@
   .wc-dn { color:var(--critical); font-weight:600; }
   .wc-ev { color:var(--text-muted); }
   .wc-zero { opacity: 0.72; }
-  #wcview { max-width: 960px; }
+  /* v1.39: the wild-card page shrink-wraps its panels and sits centered in the window (live-games page untouched) */
+  #wcview { max-width: 960px; width: -moz-fit-content; width: fit-content; margin: 0 auto; box-sizing: border-box; }
   .wc-wrap { display: flex; align-items: flex-start; position: relative; }
   .wc-panel table { width: auto; flex: 0 0 auto; min-width: 470px; }
   .wc-hist { position: relative; flex: 1 1 auto; min-width: 200px; max-width: 290px; margin-left: 6px; }
   .wc-hist svg { display: block; }
   .wc-div { display:block; border-top:1px dashed var(--gridline); margin:5px 0 4px; }
+  .wc-tools { display:flex; justify-content:flex-end; margin:0 0 6px; }
+  /* O3 (mockups32): the division runner-up's row names the leader it's chasing */
+  .wc-pair { display:inline-block; font-size:10.5px; color:var(--critical); margin-left:8px; font-weight:500; }
+  .wc-pair.muted { color:var(--text-muted); }
 </style>
 </head>
 <body>
@@ -329,6 +404,21 @@
     <button class="tog" id="togLev" aria-pressed="true" title="Highlight close, late-inning games"><span class="dot"></span>Leverage highlight</button>
     <button class="plain" id="btnTheme" title="Toggle light/dark">◐ Theme</button>
     <button class="plain" id="btnBatView" title="Batter-side marker in the zone: figure or lens">Batter: icon</button>
+    <span class="arrowwrap">
+      <button class="plain" id="btnArrow" aria-expanded="false" aria-controls="arrowPop" title="Break arrow on the newest pitch: scale, curve, colors">↗ Arrow…</button>
+      <div id="arrowPop" role="dialog" aria-label="Break arrow options">
+        <div class="row"><label>Show on</label><span class="seg" data-opt="which"><button data-v="last">Newest pitch</button><button data-v="all">All pitches</button><button data-v="none">Off</button></span></div>
+        <div class="row"><label>Scale</label><input type="range" data-opt="scale" min="1" max="6" step="0.5"><output data-out="scale"></output></div>
+        <div class="row"><label>Curve</label><input type="range" data-opt="curve" min="0" max="50" step="1"><output data-out="curve"></output></div>
+        <div class="row"><label>Width</label><input type="range" data-opt="width" min="0.5" max="3" step="0.25"><output data-out="width"></output></div>
+        <div class="row"><label>Opacity</label><input type="range" data-opt="opacity" min="5" max="100" step="1"><output data-out="opacity"></output></div>
+        <div class="row"><label>No-spin ring</label><span class="seg" data-opt="ring"><button data-v="1">On</button><button data-v="0">Off</button></span></div>
+        <div class="hr"></div>
+        <div class="row"><label>Arrow color</label><span class="swatch"><span class="seg" data-opt="curveMode"><button data-v="dot">Match dot</button><button data-v="single">Single</button></span><input type="color" data-opt="curveColor" title="Arrow color"></span></div>
+        <div class="row"><label>Ring color</label><span class="swatch"><span class="seg" data-opt="ringMode"><button data-v="dot">Match dot</button><button data-v="single">Single</button></span><input type="color" data-opt="ringColor" title="Ring color"></span></div>
+        <div class="foot"><span class="note">Tail = where the pitch would have crossed with no spin</span><button class="plain" id="arrowReset">Reset</button></div>
+      </div>
+    </span>
     <button class="plain" id="btnRefresh" title="Refresh now">↻ Refresh</button>
     <nav class="tabs"><button id="tabLive" class="active">Live games</button><button id="tabWC">Wild-card race</button></nav>
   </div>
@@ -342,45 +432,46 @@
 
 <section class="guide" id="guide">
 <!-- WATCH-GUIDE:START -->
-<div data-guide-date="2026-09-06">
-  <h2>Today&rsquo;s watch guide <span class="gdate">Sunday, Sep 6</span><span class="gstale" id="guideStale"></span></h2>
+<div data-guide-date="2026-09-15">
+  <h2>Today&rsquo;s watch guide <span class="gdate">Tuesday, Sep 15</span><span class="gstale" id="guideStale"></span></h2>
   <ul>
-    <li><b>Yankees @ Padres, 1:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/gerrit-cole-543037?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Cole</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/michael-king-650633?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">King</a>. Best matchup of the day and the series decider: San Diego lost the last NL card back to Arizona overnight (0.5 out) and sends its ace at Cole to get it back.</li>
-    <li><b>Tigers @ Guardians, 10:40 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/jackson-jobe-695549?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Jobe</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/gavin-williams-668909?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Williams</a>. Cleveland lost to Valdez and is now <b>dead even with Toronto</b> for the third AL card at 72-71; Williams against Detroit&rsquo;s best young arm with the Jays playing at the same time in KC (11:10).</li>
-    <li><b>Braves @ Phillies, 10:10 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/tyler-mahle-641816?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Mahle</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/aaron-nola-605400?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Nola</a>. Wheeler evened the series; the rubber game decides whether the East is four back or six with one head-to-head set left.</li>
-    <li><b>D-backs @ Astros, 11:10 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/eduardo-rodriguez-593958?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Rodr&iacute;guez</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/peter-lambert-663567?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Lambert</a>. Arizona holds WC3 by half a game after winning Saturday; the D-backs&ndash;Padres split screen is the whole NL race today.</li>
-    <li><b>Angels @ Pirates, 10:35 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/walbert-urena-700712?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Ure&ntilde;a</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/paul-skenes-694973?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Skenes</a>. Skenes in the morning window; Pittsburgh is still clinging to the edge of the field at 5.0 back.</li>
+    <li><b>White Sox @ Guardians, 3:40 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/davis-martin-663436?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Martin</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/foster-griffin-656492?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Griffin</a>. Chicago took the opener 7-3 on a six-run sixth (Tristan Peters&rsquo; 17-pitch walk started it) and now leads by 1.5 with the tiebreaker clinched at 7-4. Cleveland has to win the last two to get back on top; another loss makes them a pure wild-card team, 1.0 up on Toronto with 11 to play.</li>
+    <li><b>Red Sox @ Rangers, 5:05 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/patrick-sandoval-663776?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Sandoval</a> vs. TBD. Texas is 1.5 behind Cleveland for the last card and 1.0 behind Houston in the West, and gets three at home against a Boston team that&rsquo;s locked into WC2 and playing for seeding.</li>
+    <li><b>Tigers @ Blue Jays, 4:07 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/drew-anderson-623454?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Anderson</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/braydon-fisher-680755?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Fisher</a>. Detroit won 6-5 Monday on a ninth-inning error and is back inside the field at 4.5; Toronto slipped to a game back and cost the Yankees nothing &mdash; that loss is what clinched New York&rsquo;s berth.</li>
+    <li><b>Marlins @ D-backs, 6:40 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/janson-junk-676083?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Junk</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/michael-soroka-647336?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Soroka</a>. Corbin Carroll&rsquo;s two-run walk-off homer kept Arizona 2.5 back; San Diego&rsquo;s eight-game streak (8-7 at Coors Monday) continues at 5:40 with Buehler vs. Freeland.</li>
+    <li><b>Royals @ Astros, 5:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/michael-wacha-608379?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wacha</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/hunter-brown-686613?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Brown</a>. Houston is 75-75 and just 1.0 up on Texas in the West; Brown against a soft lineup is the kind of start they need, with the Rangers&ndash;Red Sox game in the same window.</li>
   </ul>
-  <p><b>Storylines:</b> Both wild-card cut lines are now literal ties or half-games: Cleveland and Toronto are level at 72-71 (FanGraphs now slightly favors the Jays, 50&ndash;46, on schedule), and Arizona leads San Diego by a half game after the two swapped spots yet again &mdash; six lead changes in ten days. Texas fell to 2.0 back after deGrom lost to the Rays; Boston, at +6.0, has moved out of the field column. Thirteen of the fifteen games start before 1:15 PT, then only White Sox&ndash;Twins (3:20) and Nationals&ndash;Dodgers (7:10) at night.</p>
-  <p class="gsources">Sources: <a href="https://www.fangraphs.com/standings/playoff-odds" target="_blank" rel="noopener">FanGraphs playoff odds (9/6)</a> &middot; <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">MLB standings</a> &middot; <a href="https://www.mlb.com/scores/2026-09-06" target="_blank" rel="noopener">Sunday scores</a></p>
+  <p><b>Storylines:</b> Two more clinches Monday: the Dodgers (Skubal, seven scoreless, a 14th straight berth) and the Yankees (Judge three-run homer, then Toronto&rsquo;s loss sealed it) &mdash; four teams are in. The Cubs beat Atlanta 7-3 and lead Philadelphia by a half game for WC1; San Diego is a game behind the Phillies for WC2 after eight straight wins. Arms worth a second screen: Misiorowski in Pittsburgh (3:40), Yamamoto in Cincinnati (3:40), Fried in Minnesota (4:40). FanGraphs now: Guardians 60% / Blue Jays 36 / Rangers 33 for the last AL spot, Padres 77 / D-backs 28 in the NL.</p>
+  <p class="gsources">Sources: <a href="https://www.fangraphs.com/standings/playoff-odds" target="_blank" rel="noopener">FanGraphs playoff odds (9/15)</a> &middot; <a href="https://whbl.com/2026/09/15/mlb-roundup-dodgers-yankees-sew-up-postseason-berths/" target="_blank" rel="noopener">Monday roundup: Dodgers, Yankees clinch</a> &middot; <a href="https://ca.sports.yahoo.com/news/white-sox-land-first-blow-040203159.html" target="_blank" rel="noopener">White Sox 7, Guardians 3</a> &middot; <a href="https://www.mlb.com/scores/2026-09-15" target="_blank" rel="noopener">Tuesday scores</a></p>
 </div>
 <!-- WATCH-GUIDE:END -->
 </section>
 
 <section id="wcview" hidden>
+<div class="wc-tools"><button class="tog" id="togPairs" aria-pressed="true" title="Tag a division runner-up with the leader it's chasing and where the loser of that race would land in the wild-card order"><span class="dot"></span>Division-lead pairs</button></div>
 <!-- WILDCARD:START -->
-<div data-wc-date="2026-09-06">
+<div data-wc-date="2026-09-15">
   <h2>The 2026 wild-card race</h2>
-  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Sun, Sep 6. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
+  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Tue, Sep 15. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
   <div class="wc-panel">
     <h3>American League</h3>
     <div class="wc-wrap">
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>81-61</td><td class="wc-plus">+9.5</td><td>100%</td><td>11-9</td><td>92-70</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>78-65</td><td class="wc-plus">+6.0</td><td>99.5%</td><td>10-9</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="CLE"><td class="team"><b>Guardians</b><span class="wc-tag">WC3</span></td><td>72-71</td><td>&mdash;</td><td>46.2%</td><td>10-9</td><td>82-80</td><td class="wc-vsf" data-abbr="CLE">&hellip;</td></tr>
+        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>87-63</td><td class="wc-plus">+11.5</td><td>100%</td><td>6-6</td><td>93-69</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>82-68</td><td class="wc-plus">+6.5</td><td>100%</td><td>6-6</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="CLE"><td class="team"><b>Guardians</b><span class="wc-tag">WC3</span></td><td>76-75</td><td>&mdash;</td><td>59.8%</td><td>6-5</td><td>82-80</td><td class="wc-vsf" data-abbr="CLE">&hellip;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>72-71</td><td>0.0</td><td>50.3%</td><td>10-9</td><td>82-80</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
-        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>70-73</td><td>2.0</td><td>18.7%</td><td>9-10</td><td>79-83</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
-        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>69-74</td><td>3.0</td><td>5.1%</td><td>9-10</td><td>78-84</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
-        <tr data-team="MIN"><td class="team"><b>Twins</b></td><td>68-74</td><td>3.5</td><td>6.4%</td><td>10-10</td><td>78-84</td><td class="wc-vsf" data-abbr="MIN">&hellip;</td></tr>
-        <tr data-team="SEA"><td class="team"><b>Mariners</b></td><td>66-77</td><td>6.0</td><td>4.5%</td><td>11-8</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="DET"><td class="team"><b>Tigers</b></td><td>65-77</td><td>7.0</td><td>0.2%</td><td>10-10</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>63-80</td><td>9.0</td><td>0.0%</td><td>9-10</td><td>72-90</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>57-86</td><td>15.0</td><td>0.0%</td><td>8-11</td><td>65-97</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>54-88</td><td>17.0</td><td>0.0%</td><td>9-11</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>75-76</td><td>1.0</td><td>35.7%</td><td>6-5</td><td>81-81</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
+        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>74-76</td><td>1.5</td><td>32.9%</td><td>6-6</td><td>80-82</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
+        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>73-78</td><td>3.0</td><td>2.4%</td><td>5-6</td><td>78-84</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
+        <tr data-team="DET"><td class="team"><b>Tigers</b></td><td>71-79</td><td>4.5</td><td>1.1%</td><td>6-6</td><td>77-85</td><td class="wc-vsf" data-abbr="DET">&hellip;</td></tr>
+        <tr class="wc-mut" data-team="MIN"><td class="team"><b>Twins</b></td><td>70-80</td><td>5.5</td><td>0.3%</td><td>6-6</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="SEA"><td class="team"><b>Mariners</b></td><td>70-81</td><td>6.0</td><td>1.8%</td><td>7-4</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>66-84</td><td>9.5</td><td>0.0%</td><td>6-6</td><td>72-90</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>61-89</td><td>14.5</td><td>0.0%</td><td>5-7</td><td>66-96</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>57-93</td><td>18.5</td><td>0.0%</td><td>5-7</td><td>62-100</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="AL"></div>
@@ -392,25 +483,25 @@
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC1</span></td><td>81-62</td><td class="wc-plus">+6.0</td><td>99.8%</td><td>10-9</td><td>91-71</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC2</span></td><td>80-62</td><td class="wc-plus">+5.5</td><td>99.6%</td><td>11-9</td><td>91-71</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="AZ"><td class="team"><b>D-backs</b><span class="wc-tag">WC3</span></td><td>75-68</td><td>&mdash;</td><td>53.8%</td><td>10-9</td><td>85-77</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
+        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC1</span></td><td>84-67</td><td class="wc-plus">+1.5</td><td>99.2%</td><td>6-5</td><td>90-72</td><td class="wc-vsf" data-abbr="CHC">&hellip;</td></tr>
+        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC2</span></td><td>83-67</td><td class="wc-plus">+1.0</td><td>95.3%</td><td>6-6</td><td>89-73</td><td class="wc-vsf" data-abbr="PHI">&hellip;</td></tr>
+        <tr data-team="SD"><td class="team"><b>Padres</b><span class="wc-tag">WC3</span></td><td>82-68</td><td>&mdash;</td><td>77.3%</td><td>6-6</td><td>88-74</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="SD"><td class="team"><b>Padres</b></td><td>74-68</td><td>0.5</td><td>41.7%</td><td>10-10</td><td>84-78</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
-        <tr data-team="STL"><td class="team"><b>Cardinals</b></td><td>71-72</td><td>4.0</td><td>2.1%</td><td>9-10</td><td>80-82</td><td class="wc-vsf" data-abbr="STL">&hellip;</td></tr>
-        <tr data-team="MIA"><td class="team"><b>Marlins</b></td><td>71-72</td><td>4.0</td><td>1.6%</td><td>8-11</td><td>79-83</td><td class="wc-vsf" data-abbr="MIA">&hellip;</td></tr>
-        <tr data-team="PIT"><td class="team"><b>Pirates</b></td><td>70-73</td><td>5.0</td><td>1.5%</td><td>10-9</td><td>80-82</td><td class="wc-vsf" data-abbr="PIT">&hellip;</td></tr>
-        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>68-74</td><td>6.5</td><td>0.0%</td><td>8-12</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>67-77</td><td>8.5</td><td>0.0%</td><td>8-10</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>64-78</td><td>11.0</td><td>0.0%</td><td>10-10</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>59-84</td><td>16.0</td><td>0.0%</td><td>8-11</td><td>67-95</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>55-87</td><td>20.0</td><td>0.0%</td><td>8-12</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="AZ"><td class="team"><b>D-backs</b></td><td>80-71</td><td>2.5</td><td>28.1%</td><td>6-5</td><td>86-76</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
+        <tr class="wc-mut" data-team="PIT"><td class="team"><b>Pirates</b></td><td>75-75</td><td>7.0</td><td>0.0%</td><td>6-6</td><td>81-81</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="STL"><td class="team"><b>Cardinals</b></td><td>75-76</td><td>7.5</td><td>0.0%</td><td>5-6</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="MIA"><td class="team"><b>Marlins</b></td><td>74-77</td><td>8.5</td><td>0.0%</td><td>5-6</td><td>79-83</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>70-80</td><td>12.0</td><td>0.0%</td><td>5-7</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>70-81</td><td>12.5</td><td>0.0%</td><td>5-6</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>69-81</td><td>13.0</td><td>0.0%</td><td>6-6</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>62-89</td><td>20.5</td><td>0.0%</td><td>4-7</td><td>66-96</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>55-95</td><td>27.0</td><td>0.0%</td><td>5-7</td><td>60-102</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="NL"></div>
     </div>
   </div>
-  <p class="wc-foot">Odds and projections: FanGraphs playoff odds (FG mode), every route to October included &mdash; the Mariners&rsquo; 41.5% and the Guardians&rsquo; 62% lean partly on their open division races. Division leaders (Rays, White Sox, Astros, Brewers, Dodgers, Braves) aren&rsquo;t listed; a leader who slips falls into this race. Grayed rows are effectively eliminated. &ldquo;vs field&rdquo; = remaining games against the contention field (teams within ~5 games of the cut, both sides), computed live from the schedule each time the page loads &mdash; hover for the full field breakdown (zero-game opponents included) with each head-to-head gap (<span class="wc-up">green</span> = you&rsquo;re ahead of them, <span class="wc-dn">red</span> = behind).</p>
+  <p class="wc-foot">Odds and projections: FanGraphs playoff odds (FG mode), every route to October included &mdash; the Guardians&rsquo; and Rangers&rsquo; numbers lean partly on their open division races. Division leaders (Rays, White Sox, Astros, Brewers, Dodgers, Braves) aren&rsquo;t listed; a leader who slips falls into this race. Grayed rows are effectively eliminated. &ldquo;vs field&rdquo; = remaining games against the contention field (teams within ~5 games of the cut, both sides), computed live from the schedule each time the page loads &mdash; hover for the full field breakdown (zero-game opponents included) with each head-to-head gap (<span class="wc-up">green</span> = you&rsquo;re ahead of them, <span class="wc-dn">red</span> = behind).</p>
 </div>
 <!-- WILDCARD:END -->
 </section>
@@ -435,6 +526,8 @@
     lastErr: null,
     sortWatch: true,
     leverage: true,
+    dragPk: null,         // v1.41: pk of the selected card being dragged (renders are deferred meanwhile)
+    renderPending: false,
     date: null,
     marked: new Set(),     // gamePks the user has click-highlighted
   };
@@ -486,15 +579,23 @@
 
   const FEED_FIELDS = "liveData,plays,currentPlay,about,atBatIndex,matchup,batter,id,playEvents," +
     "isPitch,pitchNumber,details,type,code,call,isBall,pitchData,startSpeed,coordinates,pX,pZ," +
-    "strikeZoneTop,strikeZoneBottom,result,event,description,batSide,inning";
+    "strikeZoneTop,strikeZoneBottom,result,event,description,batSide,inning,isComplete," +
+    "pfxX,pfxZ,pitchHand," + // v1.46: per-pitch movement (inches, gravity removed) + pitcher hand
+    "fullName,pitcher,isTopInning," + // v1.47: batter/pitcher names + half for the whole-game browser
+    "postOnFirst,postOnSecond,postOnThird,count,balls,strikes,outs"; // v1.48: runners/outs after each play -> the NEXT PA's starting situation
   // same fields but for EVERY play — used only to recover an at-bat that began and ended
   // between two polls (a quick single, say), so its final pitch and result are never lost
   const FEED_ALL_FIELDS = FEED_FIELDS.replace("currentPlay", "allPlays");
   state.lastCurIdx = new Map();   // pk -> atBatIndex of the last currentPlay we saw
   // "Single · RF", "Groundout · SS", "Home Run · CF" — event plus where the ball went, from the
   // play description ("singles on a line drive to right fielder …")
-  function resultText(res) {
+  // Mid-PA "action" events (batter timeout, mound visit, a steal, a substitution…) can show up in
+  // currentPlay.result.event while the plate appearance is still going — never a result.
+  const ACTION_EVENT = /timeout|mound visit|substitution|switch|advisory|injury|delay|review|challenge|ejection|umpire|stolen base|wild pitch|passed ball|balk|indifference/i; // NOT caught stealing / pickoff / runner out / error — those can end a play
+  function resultText(res, done) {
     if (!res || !res.event) return null;
+    if (done === false) return null;                                  // v1.42: the PA isn't over (Lowe's "Batter Timeout" at 0-2, 9/12)
+    if (done == null && ACTION_EVENT.test(res.event)) return null;    // no isComplete flag available: filter by name
     if (/strikeout|walk|hit by pitch|intent|catcher interf/i.test(res.event)) return res.event; // no fielder for these
     const d = (res.description || "").toLowerCase();
     // FIRST fielder mentioned = where the ball went ("shortstop Lindor to first baseman Alonso" -> SS)
@@ -511,26 +612,113 @@
       const pd = e.pitchData || {};
       if (pd.strikeZoneTop) szT = pd.strikeZoneTop;
       if (pd.strikeZoneBottom) szB = pd.strikeZoneBottom;
-      return { n: e.pitchNumber, t: (e.details && e.details.type && e.details.type.code) || "?",
+      return { n: e.pitchNumber, c: (e.details && e.details.call && e.details.call.code) || "?",
+               t: (e.details && e.details.type && e.details.type.code) || "?",
                v: pd.startSpeed ? Math.round(pd.startSpeed) : "", r: classifyPitch(e),
-               x: pd.coordinates ? pd.coordinates.pX : null, z: pd.coordinates ? pd.coordinates.pZ : null };
+               x: pd.coordinates ? pd.coordinates.pX : null, z: pd.coordinates ? pd.coordinates.pZ : null,
+               // v1.46 break: pfxX + = catcher's right = pitcher's LEFT; pfxZ + = up (inches)
+               px: pd.coordinates && typeof pd.coordinates.pfxX === "number" ? pd.coordinates.pfxX : null,
+               pz: pd.coordinates && typeof pd.coordinates.pfxZ === "number" ? pd.coordinates.pfxZ : null };
     });
-    return { abIdx: play.about ? play.about.atBatIndex : -1, events, szT, szB, result: resultText(play.result),
+    const done = play.about && typeof play.about.isComplete === "boolean" ? play.about.isComplete : null;
+    return { abIdx: play.about ? play.about.atBatIndex : -1, events, szT, szB, result: resultText(play.result, done),
              side: (play.matchup && play.matchup.batSide && play.matchup.batSide.code) || null,
+             pit: (play.matchup && play.matchup.pitchHand && play.matchup.pitchHand.code) || null, // v1.46 pitcher hand
              bid: (play.matchup && play.matchup.batter && play.matchup.batter.id) || null,
+             // v1.47: names + half-inning for the whole-game browser's list header and PA tag
+             bname: (play.matchup && play.matchup.batter && play.matchup.batter.fullName) || "",
+             pid: (play.matchup && play.matchup.pitcher && play.matchup.pitcher.id) || null,
+             pname: (play.matchup && play.matchup.pitcher && play.matchup.pitcher.fullName) || "",
+             top: play.about && typeof play.about.isTopInning === "boolean" ? play.about.isTopInning : null,
+             // v1.48: runners on base and outs AFTER this play (= the next PA's starting situation)
+             post: { 1: !!(play.matchup && play.matchup.postOnFirst), 2: !!(play.matchup && play.matchup.postOnSecond), 3: !!(play.matchup && play.matchup.postOnThird) },
+             endOuts: play.count && typeof play.count.outs === "number" ? play.count.outs : null,
              inn: play.about && play.about.inning ? ordinal(play.about.inning) : "" };
   }
   const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
-  // ---- previous-PA browser (v1.36, mockups27-31) ----
-  // paHist: pk -> {bid, list: [completed PAs of the CURRENT batter, oldest first]}; refreshed from
-  // allPlays whenever the batter changes. paView: pk -> index into list while browsing, else absent.
-  state.paHist = new Map();
+  // ---- at-bat browser (v1.36 same-batter, mockups27-31; v1.47 whole game, mockups39) ----
+  // gamePAs: pk -> {at, list: [EVERY completed PA of the game, oldest first]} from allPlays —
+  // loaded when the batter changes (live), on selection (final), or on the first browse click,
+  // and refreshed in the background when a live game's copy is older than PA_STALE_MS.
+  // paView: pk -> index into that list while browsing, else absent (= live AB / final's last PA).
+  // ˄ ˅ step through the whole list (shift = a half-inning at a time); ‹ › step through the
+  // SAME batter's PAs only, as they always have.
+  state.gamePAs = new Map();
   state.paView = new Map();
   state.paBusy = new Set();
-  function paListFrom(plays, bid, abIdx) {
-    return plays.filter(pl => pl.matchup && pl.matchup.batter && pl.matchup.batter.id === bid &&
-                        pl.about && pl.about.atBatIndex < abIdx && pl.result && pl.result.event)
-      .map(playToAB).filter(a => a.events.length).sort((a, b) => a.abIdx - b.abIdx);
+  state.finalBox = new Map();   // pk -> boxscore players for selected FINAL games (lineup spots)
+  const PA_STALE_MS = 20000;
+  function gamePAsFromDoc(pk, all) {
+    const plays = (all && all.liveData && all.liveData.plays && all.liveData.plays.allPlays) || [];
+    // v1.48: each PA remembers the situation it STARTED in (runners + outs) = what the previous
+    // completed play of the same half-inning left behind (pitchless plays like a caught stealing
+    // count for the situation but aren't browsable)
+    const list = []; let prev = null;
+    for (const pl of plays.slice().sort((x, y) => (x.about ? x.about.atBatIndex : 0) - (y.about ? y.about.atBatIndex : 0))) {
+      if (!(pl.about && pl.about.isComplete && pl.result && pl.result.event)) continue;
+      const a = playToAB(pl), same = prev && prev.inn === a.inn && prev.top === a.top;
+      a.sb = same ? prev.post : { 1: false, 2: false, 3: false };
+      a.so = same && prev.endOuts != null ? prev.endOuts : 0;
+      if (a.events.length) list.push(a);
+      prev = a;
+    }
+    const rec = { at: Date.now(), list };
+    state.gamePAs.set(pk, rec);
+    return rec;
+  }
+  async function loadGamePAs(pk, force) {
+    const rec = state.gamePAs.get(pk);
+    if (rec && !force) return rec;
+    if (state.paBusy.has(pk)) return rec;
+    state.paBusy.add(pk);
+    try { return gamePAsFromDoc(pk, await getJSON("https://statsapi.mlb.com/api/v1.1/game/" + pk + "/feed/live?fields=" + FEED_ALL_FIELDS)); }
+    catch (e) { return rec; }
+    finally { state.paBusy.delete(pk); }
+  }
+  async function loadFinalGame(pk) {
+    const jobs = [];
+    if (!state.gamePAs.has(pk)) jobs.push(loadGamePAs(pk));
+    if (!state.finalBox.has(pk)) jobs.push(fetchBox(pk).then(b => state.finalBox.set(pk, b.players)).catch(() => state.finalBox.set(pk, null)));
+    await Promise.all(jobs);
+  }
+  // the browsable PAs of a game: everything before the live at-bat (the feed keeps a finished AB
+  // as currentPlay until the next batter steps in, and allPlays has it too — never list it twice)
+  function paList(g) {
+    const rec = state.gamePAs.get(g.pk), list = rec ? rec.list : [];
+    const live = g.abstract === "Live" ? state.abData.get(g.pk) : null;
+    return live ? list.filter(a => a.abIdx < live.abIdx) : list;
+  }
+  // what a selected live/final card's panel shows: {ab, browsing, idx, list}; null = nothing yet
+  function viewedAB(g) {
+    const list = paList(g);
+    const v = state.paView.get(g.pk);
+    if (v != null && v < list.length) return { ab: { ...list[v], showResult: true }, browsing: true, idx: v, list }; // history: no delay
+    if (g.abstract === "Final") return list.length ? { ab: { ...list[list.length - 1], showResult: true }, browsing: false, idx: list.length - 1, list } : null;
+    const ab = visiblePitches(g.pk);
+    return ab ? { ab, browsing: false, idx: null, list } : null;
+  }
+  // one browse step. go: "live" | "-1" | "1" (same batter) | "up" | "down" (any batter; shift = half-inning)
+  function browseStep(g, go, shift) {
+    const pk = g.pk, rec = state.gamePAs.get(pk), list = paList(g);
+    if (!list.length) { if (!rec) loadGamePAs(pk).then(render); return; }
+    if (g.abstract === "Live" && Date.now() - rec.at > PA_STALE_MS) loadGamePAs(pk, true).then(render); // quiet refresh
+    const n = list.length, final = g.abstract === "Final", endIdx = final ? n - 1 : n; // n = the live AB's virtual slot
+    const v = state.paView.get(pk), cur = v == null ? endIdx : v;
+    const setView = i => { if (i == null || i >= endIdx) state.paView.delete(pk); else state.paView.set(pk, Math.max(0, i)); };
+    if (go === "live") { setView(null); return; }
+    if (go === "up" || go === "down") {
+      const dir = go === "up" ? -1 : 1;
+      if (!shift) { setView(cur + dir); return; }
+      const key = i => (i >= n ? 1e9 : list[i].inn + (list[i].top ? "T" : "B")), k = key(cur);
+      let i = cur;
+      if (dir < 0) { while (i > 0 && key(i) === k) i--; const k2 = key(i); while (i > 0 && key(i - 1) === k2) i--; }
+      else { while (i < endIdx && key(i) === k) i++; }
+      setView(i); return;
+    }
+    // ‹ ›: the previous / next PA by the batter of the PA being viewed (or the live batter)
+    const live = cur >= n ? state.abData.get(pk) : null, bid = live ? live.bid : list[cur].bid;
+    if (go === "-1") { for (let i = cur - 1; i >= 0; i--) if (list[i].bid === bid) { setView(i); return; } }
+    else { for (let i = cur + 1; i < n; i++) if (list[i].bid === bid) { setView(i); return; } setView(null); }
   }
   state.lastAB = new Map(); // pk -> [completed at-bats, oldest first, max 3] (kept on screen until the next batter's first pitch is visible)
   // call code -> result class: b(all) / s(trike) / f(oul) / x (in play)
@@ -587,16 +775,25 @@
         }
       }
       state.lastCurIdx.set(pk, abIdx);
-      // batter changed (or first sight): (re)load this batter's earlier PAs and drop any browse view
-      const ph = state.paHist.get(pk);
-      if (abObj.bid && (!ph || ph.bid !== abObj.bid) && !state.paBusy.has(pk)) {
+      // batter changed (or first sight): reload the whole-game PA list and drop any browse view
+      const prevAB = state.abData.get(pk);
+      if (abObj.bid && (!prevAB || prevAB.bid !== abObj.bid || !state.gamePAs.has(pk)) && !state.paBusy.has(pk)) {
         state.paBusy.add(pk);
         state.paView.delete(pk);
         try {
           const all = await getAll();
           const plays = (all.liveData && all.liveData.plays && all.liveData.plays.allPlays) || [];
-          state.paHist.set(pk, { bid: abObj.bid, list: paListFrom(plays, abObj.bid, abIdx) });
-        } catch (e) { state.paHist.set(pk, { bid: abObj.bid, list: [] }); }
+          gamePAsFromDoc(pk, all);
+          // v1.43: first sight of the game (a reload, or just selected) — seed the last finished
+          // at-bats as old news, so a new batter with 0–1 pitches doesn't leave an empty "0 – 0"
+          // panel the way it did after a refresh (Ryan, 9/12). Same allPlays doc, no extra fetch.
+          if (fresh && !hist.length) {
+            hist = plays.filter(pl => pl.about && pl.about.isComplete && pl.about.atBatIndex < abIdx && pl.result && pl.result.event)
+              .slice(-3).map(playToAB).filter(a => a.events.length);
+            hist.forEach(a => a.events.forEach(ev => seen.set(a.abIdx + ":" + ev.n, 0)));
+            state.lastAB.set(pk, hist);
+          }
+        } catch (e) { /* the list loads on the first browse click instead */ }
         state.paBusy.delete(pk);
       }
       const keepIdx = new Set([abIdx, ...hist.map(a => a.abIdx)]);
@@ -643,10 +840,51 @@
     SV: "Slurve", EP: "Eephus", FO: "Forkball", SC: "Screwball", CS: "Slow Curve",
     FA: "Fastball", PO: "Pitchout" };
 
-  const PITCH_COL = { b: "var(--good)", s: "var(--critical)", f: "#b98200", x: "var(--link)" };
+  const PITCH_COL = { b: "var(--pitch-ball)", s: "var(--pitch-strike)", f: "var(--pitch-foul)", x: "var(--pitch-inplay)" };
   // batter-side marker style: "icon" (Ryan's batter.svg, life-size & clipped) or "lens" (F4 ellipse)
   let batView = "icon";
   try { if (localStorage.getItem("mlbBatView") === "lens") batView = "lens"; } catch (e) {}
+  // v1.45 dot labels (mockups37): per game, "n" = pitch number (default) or "t" = pitch-type code;
+  // clicking the grey box toggles it (instead of selecting/deselecting); remembered across reloads
+  let dotLabels = {};
+  try { dotLabels = JSON.parse(localStorage.getItem("mlbDotLabels")) || {}; } catch (e) {}
+  function saveDotLabels() { try { localStorage.setItem("mlbDotLabels", JSON.stringify(dotLabels)); } catch (e) {} }
+  // v1.46 break arrow + pitcher-hand fist (mockups38). Ryan's picks 9/14: arrow on the newest pitch,
+  // 3 px/in (4 would be true scale), curve 18%, width 1.5, opacity 39%, no-spin ring on; fist in the
+  // bottom-right corner (bottom-LEFT for a lefty — the arm side), size 10, inset 8/6, opacity 15%.
+  // Everything under ARROW_DEF is re-tunable from the header's "Arrow…" panel and persisted.
+  const ARROW_DEF = { which: "last", scale: 3, curve: 0.18, width: 1.5, opacity: 0.39, ring: true,
+                      curveMode: "single", curveColor: "#1c5cab", ringMode: "single", ringColor: "#4b4944" };
+  const FIST = { size: 10, sx: 8, sy: 6, opacity: 0.15 };
+  let arrowOpts = { ...ARROW_DEF };
+  try { arrowOpts = { ...ARROW_DEF, ...(JSON.parse(localStorage.getItem("mlbArrow")) || {}) }; } catch (e) {}
+  function saveArrowOpts() { try { localStorage.setItem("mlbArrow", JSON.stringify(arrowOpts)); } catch (e) {} }
+  // curved arrow from the no-spin point (sx,sy) to the pitch (ex,ey); bows away from the chord so a
+  // sweeper's run reads as a hook. `col` = the pitch's dot color, used when a mode is "dot".
+  function breakArrow(sx, sy, ex, ey, r, col) {
+    const o = arrowOpts, dx = ex - sx, dy = ey - sy, len = Math.hypot(dx, dy);
+    if (len < 2) return "";
+    const nx = -dy / len, ny = dx / len, bow = (ny < 0 ? 1 : -1) * o.curve * len;
+    const cx = (sx + ex) / 2 + nx * bow, cy = (sy + ey) / 2 + ny * bow;
+    const tx = ex - cx, ty = ey - cy, tl = Math.hypot(tx, ty) || 1, px = ex - tx / tl * (r + 1), py = ey - ty / tl * (r + 1);
+    const a = Math.atan2(ty, tx), hl = 4 + o.width * 1.6, hw = 2.4 + o.width;
+    const ac = o.curveMode === "dot" ? col : o.curveColor, rc = o.ringMode === "dot" ? col : o.ringColor;
+    return "<g class='brkg' opacity='" + o.opacity + "'>" +
+      (o.ring ? "<circle class='brk0' cx='" + sx + "' cy='" + sy + "' r='" + (r - 2) + "' stroke='" + rc + "'/>" : "") +
+      "<path class='brk' stroke='" + ac + "' stroke-width='" + o.width + "' d='M" + sx + " " + sy + " Q" + cx + " " + cy + " " + px + " " + py + "'/>" +
+      "<path class='brkh' fill='" + ac + "' d='M" + px + " " + py + " L" + (px - hl * Math.cos(a) + hw * Math.sin(a)) + " " + (py - hl * Math.sin(a) - hw * Math.cos(a)) +
+      " L" + (px - hl * Math.cos(a) - hw * Math.sin(a)) + " " + (py - hl * Math.sin(a) + hw * Math.cos(a)) + " Z'/></g>";
+  }
+  // bare right fist in a 24×24 box (mirrored for a lefty), parked in the bottom corner on the arm side
+  const FIST_D = "<path class='hsym' d='M6.5 11 a2.8 2.8 0 0 1 5.6 0 a2.8 2.8 0 0 1 5.6 0 a2.4 2.4 0 0 1 4.6 .6 L22.3 17.5 C22.3 23 18.5 26.6 13 26.6 L8.3 26.6 C5 26.6 2.8 24.3 2.8 21 L2.8 15.5 a3.2 3.2 0 0 1 3.7 -4.5 Z' transform='translate(0 -3) scale(.9)'/>" +
+    "<path class='hsym' d='M2.8 17.4 C1 17.4 0 19.2 .9 21.5 C1.8 23.8 4.6 24.3 7.4 23.8 L7.4 17.4 Z' transform='translate(0 -3) scale(.9)'/>" +
+    "<path class='hsym2' d='M8.8 11.5 v3.7 M12.5 11 v4.2 M16.7 11.5 v3.7' transform='translate(0 -3) scale(.9)'/>";
+  function handSymbol(hand, W, H) {
+    if (hand !== "R" && hand !== "L") return "";
+    const sz = FIST.size, cx = hand === "L" ? FIST.sx : W - FIST.sx - sz, cy = H - FIST.sy - sz;
+    return "<g class='hand' data-hand='" + hand + "' opacity='" + FIST.opacity + "' transform='translate(" + cx + " " + cy + ") scale(" + (sz / 24) + ")'>" +
+      "<g transform='" + (hand === "L" ? "translate(24 0) scale(-1 1)" : "") + "'>" + FIST_D + "</g></g>";
+  }
   const BATTER_D = "M40.34,84.21c-.53-.4-1.18-.62-1.84-.75-.07-.13-.12-.26-.12-.41,0-.38-.4-.71-.78-.65-.08.01-.16.04-.22,0-.07-.05-.07-.16-.08-.24-.04-.2-.22-.34-.42-.38-.19-.04-.4,0-.59.03,0-.5-.24-1.05-.23-1.55,0-.15,0-.29-.05-.43-.1-.31-.41-.49-.69-.65-.55-.31-1.1-.62-1.65-.93.13-1.43-.51-2.97-1.53-3.99-.3-.3-.67-.6-.74-1.03-.04-.23.02-.47-.03-.7-.05-.23-.27-.46-.49-.38.08-.34-.03-.71-.27-.96,0-.67-.05-1.51-.05-2.18,0-.24,0-.48-.09-.7-.12-.28-.36-.48-.6-.67-.31-.25-.62-.5-.92-.74-.17-.14-.34-.28-.44-.47-.11-.23-.11-.49-.14-.75-.06-.45-.29-.89-.68-1.12-.29-.16-.63-.2-.95-.25-.33-.05-.67-.12-.91-.35-.24-.22-.33-.64-.11-.88.16-.17.42-.2.61-.35.19-.14.2-.53-.03-.54,2.94-2.94,5.29-6.47,6.92-10.29.84-1.97,2.5-3.5,2.78-5.62.27-2.12-.46-4.43-2.17-5.72-.21-.16-.45-.32-.59-.54.18-.55.25-1.12.32-1.69.06-.46.11-.94-.02-1.39-.13-.45-.44-.82-.74-1.18-.85-1.01-1.69-2.02-2.54-3.03,0-1.05-.63-2.15-1.19-3.03-.57-.88-1.23-1.72-1.64-2.69-.22-.52-.37-1.09-.71-1.55-.4-.53-1.02-.86-1.45-1.38-.92-1.12-.77-2.93-1.88-3.86-.31-.26-.69-.42-1.06-.58-.44-.19-.88-.37-1.32-.56-.36-.15-.74-.3-1.12-.24-.3.05-.57.23-.86.32-.24.07-.49.09-.74.04-.12-.31.05-.64.24-.92.48-.69.66-1.58.47-2.4-.07-.32-.2-.62-.33-.92l.63-.59c.76-.7,1.57-1.34,2.44-1.91l.63-.41c.84-.55,1.64-1.17,2.38-1.85l7.17-6.61c.48-.44.46-1.21-.05-1.63l-.8-.65c-.41-.34-1.01-.32-1.4.03l-6.7,6.02c-1.03.92-1.95,1.96-2.74,3.1h0c-.69.98-1.47,1.89-2.34,2.72,0-.02-.02-.04-.02-.06-.31-.71-.63-1.44-1.15-2.01-.76-.85-1.9-1.31-3.04-1.34-1.14-.03-2.27.36-3.22.99-.59.39-1.21,1.04-1.36,1.72-.36.28-.71.56-1.07.83-.29.23-.59.46-.79.76-.21.3-.32.7-.2,1.05.14.42.57.68.99.85.14.06.29.12.35.26.05.11.04.24.03.36-.11,1.11.21,2.25.87,3.14.23.31.54.6.91.66l-.77.72c-.11-.09-.21-.19-.34-.23-.16-.05-.35,0-.45.13-.11.13-.13.32-.05.47-.3.05-.77.32-.72.62-.46.05-.82.52-.76.97-.19-.03-.3.37-.48.45-.19.09-.35-.19-.54-.28-.21-.1-.48.07-.56.29-.09.22-.05.47-.01.7-.35.34-.78.59-1.11.96-.32.37-.58.83-.6,1.32-.16-.03-.24.19-.26.36-.04.41-.06.86.19,1.19.19.24.51.4.54.7.02.2-.11.37-.2.55-.08.18-.11.44.07.54-.46,2.01-.41,4.2.13,6.2.08.31.18.63.39.88.21.25.55.41.85.32,1.18-.35,2.52-.51,3.5-1.25.81.95,1.79,1.81,2.72,2.64.06.05.13.11.21.11.1,0,.17-.08.23-.15.57-.67,1.13-1.34,1.7-2.01.32-.38.67-.78,1.13-.98.47-.19,1.02-.17,1.44-.45,1.33,1.68,2.45,3.64,3.34,5.59.25.55.49,1.12.91,1.55.42.43,1.07.7,1.63.49.11.29-.24.48-.25.8,0,.21.13.39.26.55.28.34.59.66.93.95.04.04.09.08.1.13.01.07-.04.14-.09.19-.25.24-.63.4-.66.75-.03.24.15.46.32.64.03.04.07.08.07.13,0,.04-.03.07-.05.09-.21.27-.43.55-.64.82-2.3,2.95-4.42,6.2-5.9,9.64-.48,1.11-.88,2.26-1.51,3.29-.33.54-.74,1.08-.78,1.72-.05.68.33,1.31.7,1.88,1.45,2.28,2.86,4.87,3.58,7.48.15.54.24,1.12.56,1.58.06.09.14.18.19.27.07.13.1.27.13.41.42,1.79.95,3.55,1.59,5.27.11.28.22.57.41.8.19.23.49.4.79.36-.48.45-.16,1.32-.35,1.95-.1.33-.35.59-.59.83-.68.7-1.38,1.41-2.27,1.81-.99.44-2.24.51-2.89,1.38-.18.24-.29.57-.15.83.15.27.51.35.82.39.78.11,1.55.21,2.33.32,1.06.15,2.18.28,3.15-.16.57-.26,1.12-.71,1.73-.6.19.03.37.12.56.18.56.18,1.16.1,1.74.02.43-.06.85-.12,1.28-.17.17-.02.35-.05.49-.14.23-.15.32-.42.38-.68.18-.82.07-1.7-.29-2.45.7.47,1.3,1.01,1.7,1.75.24.43.47.94.94,1.07.17.04.35.03.51.1.39.17.43.69.5,1.11.08.45.26.87.33,1.32.07.4.06.8.05,1.21-.02.83-.04,1.67-.07,2.51-.02.93-.05,1.87-.21,2.79-.15.86-.43,1.7-.5,2.56-.01.14-.02.29.04.42.12.28.48.35.78.35,1.12-.02,2.14-.67,2.91-1.48.77-.81,1.33-1.79,1.96-2.71.38-.55.8-1.1.95-1.75.2-.86-.09-1.86.42-2.58.24-.34.61-.55.93-.82.77-.64,1.22-1.58,1.64-2.5.22-.47.44-.96.43-1.48-.01-.67-.41-1.29-.94-1.69ZM11.38,26.47c-.16.37-.43.7-.78.92-.27.17-.61.31-.73.61-.05.12-.05.25-.1.37-.19.46-.93.52-1.04,1.01-.38.02-.85.09-.99.45-.06.16-.03.33-.08.5-.05.16-.23.31-.37.23-.12-.38-.24-.76-.36-1.14-.05-.17-.11-.34-.09-.51.03-.42.42-.7.71-1.01.24-.26.42-.58.47-.93.05-.35-.03-.73-.27-.99-.08-.1-.19-.18-.26-.28-.07-.09-.09-.18-.09-.25l.61-.57c.12.22.25.43.43.61.21.2.49.34.78.3.16-.02.32-.1.48-.09.1,0,.2.04.29.07.43.16.87.31,1.3.46.03.01.07.02.09.05.04.05.02.13,0,.19ZM12.79,24.22s-.1.1-.16.1-.12-.04-.18-.08c-.27-.21-.53-.45-.71-.74-.18-.29-.27-.65-.18-.98.05-.21-.16-.42-.38-.61l.22-.2s.06.03.09.05c.57.27,1.23,0,1.81-.24.07-.03.14-.05.21-.03.05.02.08.07.1.11.12.24.11.59.35.72-.28.66-.68,1.37-1.17,1.89Z";
   function batterMark(side, pk) {
     if (batView === "lens")
@@ -658,27 +896,36 @@
       "<g class='batfig' clip-path='url(#" + id + ")' transform='translate(" + (side === "R" ? 0 : 144) + " 0) scale(" + (side === "R" ? 1 : -1) + " 1)'>" +
       "<g transform='translate(" + x0 + " " + y0 + ") scale(" + sc + ")'><path fill='var(--bat-fig)' d='" + BATTER_D + "'/></g></g>";
   }
-  function paNavSVG(pk) {
-    const ph = state.paHist.get(pk), n = ph ? ph.list.length : 0, view = state.paView.get(pk);
-    const browsing = view != null && ph && view < n;
-    const total = n + 1, cur = browsing ? view + 1 : total;
+  function paNavSVG(g, vw) {
+    const pk = g.pk, list = vw.list, n = list.length, final = g.abstract === "Final";
+    const total = final ? n : n + 1, cur = vw.browsing ? vw.idx + 1 : total;
+    const bid = vw.ab.bid, curI = vw.browsing ? vw.idx : (final ? n - 1 : n);
+    const prevSame = list.some((a, i) => i < curI && a.bid === bid);
     // SVG text is only clickable on its glyph strokes, so each arrow gets an invisible hit box
     // on top (a miss used to fall through to the card and DESELECT the game — 9/3).
+    // v1.47: ‹ › (top-left) = same batter's previous / next PA, as before; ˄ ˅ (top-right, the
+    // same glyphs turned 90°) = previous / next PA of the whole game.
     let s = "<g class='panav'>" +
-      "<text class='zarr" + (cur <= 1 ? " dim" : "") + "' x='4' y='38' font-size='39'>‹</text>" +
-      "<text class='zarr" + (browsing ? "" : " dim") + "' x='31' y='38' font-size='39'>›</text>" +
+      "<text class='zarr" + (prevSame ? "" : " dim") + "' x='4' y='38' font-size='39'>‹</text>" +
+      "<text class='zarr" + (vw.browsing ? "" : " dim") + "' x='31' y='38' font-size='39'>›</text>" +
       "<rect class='zhit' data-pago='-1' data-ppk='" + pk + "' x='0' y='0' width='28' height='48'/>" +
-      "<rect class='zhit' data-pago='1' data-ppk='" + pk + "' x='28' y='0' width='24' height='48'/></g>";
-    if (browsing) {
-      const pa = ph.list[view];
+      "<rect class='zhit' data-pago='1' data-ppk='" + pk + "' x='28' y='0' width='24' height='48'/>" +
+      "<text class='zarr" + (cur <= 1 ? " dim" : "") + "' x='0' y='0' font-size='39' transform='translate(116 2) rotate(90)'>‹</text>" +
+      "<text class='zarr" + (vw.browsing ? "" : " dim") + "' x='0' y='0' font-size='39' transform='translate(116 26) rotate(90)'>›</text>" +
+      "<rect class='zhit' data-pago='up' data-ppk='" + pk + "' x='114' y='0' width='30' height='24'/>" +
+      "<rect class='zhit' data-pago='down' data-ppk='" + pk + "' x='114' y='24' width='30' height='24'/></g>";
+    if (vw.browsing) {
+      const pa = vw.ab, half = (pa.top === true ? "▲" : pa.top === false ? "▼" : "") + (pa.inn || "");
+      const endLbl = final ? "FINAL" : "LIVE", endCol = final ? "var(--text-muted)" : "var(--good)";
       s += "<g class='patag' data-pago='live' data-ppk='" + pk + "'><rect x='47' y='6' width='57' height='15' rx='7.5' fill='var(--chip-bg)'/>" +
-        "<text x='75.5' y='17' text-anchor='middle' font-size='8.5' font-weight='600' fill='var(--text-muted)' data-pago='live' data-ppk='" + pk + "'>PA " + cur + "/" + total + (pa.inn ? " · " + pa.inn : "") + "</text></g>" +
-        "<g class='patag' data-pago='live' data-ppk='" + pk + "'><rect x='106' y='6' width='34' height='15' rx='7.5' fill='transparent' stroke='var(--good)'/>" +
-        "<text x='123' y='17' text-anchor='middle' font-size='8.5' font-weight='700' fill='var(--good)' data-pago='live' data-ppk='" + pk + "'>LIVE</text></g>";
+        "<text x='75.5' y='17' text-anchor='middle' font-size='8.5' font-weight='600' fill='var(--text-muted)' data-pago='live' data-ppk='" + pk + "'>" + cur + "/" + total + (half ? " · " + half : "") + "</text></g>" +
+        "<g class='patag' data-pago='live' data-ppk='" + pk + "'><rect x='70' y='24' width='34' height='15' rx='7.5' fill='transparent' stroke='" + endCol + "'/>" +
+        "<text x='87' y='35' text-anchor='middle' font-size='8.5' font-weight='700' fill='" + endCol + "' data-pago='live' data-ppk='" + pk + "'>" + endLbl + "</text></g>";
     }
     return s;
   }
-  function zoneSVG(ab, pk) {
+  function zoneSVG(ab, g, vw) {
+    const pk = g.pk;
     // uniform px-per-foot on both axes so the zone keeps its true taller-than-wide shape
     const S = 48, W = 3 * S, H = Math.round(4.2 * S), r = 8;
     const x = v => (1.5 - v) * S;   // pitcher's view (mirrored)
@@ -687,8 +934,9 @@
     // not the ±0.83 ft Statcast detection width (plate + ball radius), which reads squat
     const ZH = 0.708;
     const zx = x(ZH), zw = x(-ZH) - zx, zy = z(ab.szT), zh = z(ab.szB) - zy;
-    let s = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='overflow:visible'>";
+    let s = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='overflow:visible' data-zpk='" + pk + "'>";
     s += "<rect x='0' y='0' width='" + W + "' height='" + H + "' rx='6' fill='var(--surface-2)'/>";
+    const typeLabels = dotLabels[pk] !== "n"; // v1.47: pitch-type labels by default (Ryan, 9/15); "n" = numbers
     // batter-side lens (F4): a 34×3 "5° ellipse" on the ground beside the plate — RHB on the
     // pitcher's right, LHB on the left. Drawn first so pitches and the plate sit on top of it.
     if (ab.side === "R" || ab.side === "L") s += batterMark(ab.side, pk);
@@ -700,47 +948,87 @@
       s += "<line x1='" + zx + "' y1='" + (zy + zh * i / 3) + "' x2='" + (zx + zw) + "' y2='" + (zy + zh * i / 3) + "' stroke='var(--gridline)' stroke-width='0.8'/>";
     }
     const plotted = ab.events.filter(ev => ev.x != null && ev.z != null);
+    // v1.46 break arrows go UNDER the dots: tail = no-spin crossing point, head = the pitch
+    if (arrowOpts.which !== "none") plotted.forEach((ev, i) => {
+      if (ev.px == null || ev.pz == null || (arrowOpts.which === "last" && i !== plotted.length - 1)) return;
+      const cx = x(ev.x), cy = z(ev.z), dx = -ev.px * arrowOpts.scale, dy = -ev.pz * arrowOpts.scale;
+      s += breakArrow(cx - dx, cy - dy, cx, cy, r, PITCH_COL[ev.r]);
+    });
     plotted.forEach((ev, i) => {
       const cx = x(ev.x), cy = z(ev.z), last = i === plotted.length - 1;
       if (last) s += "<circle cx='" + cx + "' cy='" + cy + "' r='" + (r + 3) + "' fill='none' stroke='" + PITCH_COL[ev.r] + "' stroke-width='1.3'/>";
       s += "<circle cx='" + cx + "' cy='" + cy + "' r='" + r + "' fill='" + PITCH_COL[ev.r] + "'/>";
-      s += "<text x='" + cx + "' y='" + (cy + 2.8) + "' text-anchor='middle' font-size='8.5' font-weight='700' fill='#fff'>" + ev.n + "</text>";
+      const numc = ev.r === "b" ? "var(--pitch-ball-num)" : "#fff";
+      if (typeLabels) // 8px semibold, +0.4px tracking (Ryan's pick, mockups37) so two letters sit inside the r=8 dot
+        s += "<text x='" + cx + "' y='" + (cy + 2.9) + "' text-anchor='middle' font-size='8' font-weight='600' letter-spacing='0.4' fill='" + numc + "'>" + esc(ev.t) + "</text>";
+      else
+        s += "<text x='" + cx + "' y='" + (cy + 2.8) + "' text-anchor='middle' font-size='8.5' font-weight='700' fill='" + numc + "'>" + ev.n + "</text>";
     });
-    return s + paNavSVG(pk) + "</svg>";
+    return s + handSymbol(ab.pit, W, H) + paNavSVG(g, vw) + "</svg>";
   }
   // running count computed from the VISIBLE pitches (so it respects the spoiler delay)
-  function abCount(events) {
+  function abCountRaw(events) {
     let b = 0, s = 0;
     for (const ev of events) {
       if (ev.r === "b") b++;
       else if (ev.r === "s") s++;
       else if (ev.r === "f" && s < 2) s++;
     }
-    return Math.min(b, 3) + " – " + Math.min(s, 2);
+    return [Math.min(b, 3), Math.min(s, 2)];
   }
+  function abCount(events) { const c = abCountRaw(events); return c[0] + " – " + c[1]; }
   const MAX_PITCH_LIST = 8;
+  // v1.47 pitch cut: click a pitch line to show only the pitches up to it (the rest grey out);
+  // click any line again to clear. Per game, and forgotten as soon as a different AB is shown.
+  state.pitchCut = new Map(); // pk -> {abIdx, n}
+  const lastName = full => { const p = (full || "").trim().split(" "); return p.length > 2 && /^(Jr\.?|Sr\.?|II|III|IV)$/.test(p[p.length - 1]) ? p.slice(-2).join(" ") : p[p.length - 1] || ""; };
+  function lineupSpot(g, bid) {
+    const players = g.boxPlayers || state.finalBox.get(g.pk);
+    const rec = bid && players && players["ID" + bid];
+    return rec && rec.battingOrder ? Math.round(+rec.battingOrder / 100) : null;
+  }
+  const miniLogo = id => id ? "<img class='mlogo' src='https://www.mlbstatic.com/team-logos/" + id + ".svg' alt='' loading='lazy'>" : "";
+  // the pitch cut that applies to the AB on screen (dropped when the AB changed or the pitch isn't visible)
+  function activeCut(g, ab) {
+    let cut = state.pitchCut.get(g.pk);
+    if (cut && (cut.abIdx !== ab.abIdx || !ab.events.some(ev => ev.n === cut.n))) { state.pitchCut.delete(g.pk); cut = null; }
+    return cut;
+  }
   function abZoneHTML(g) {
-    let ab = visiblePitches(g.pk);
-    if (!ab) return "";
-    const ph = state.paHist.get(g.pk), view = state.paView.get(g.pk);
-    if (view != null && ph && view < ph.list.length) ab = { ...ph.list[view], showResult: true }; // history: no delay
-    const cut = Math.max(0, ab.events.length - MAX_PITCH_LIST);
-    const shown = ab.events.slice(cut);
-    const list = "<div class='pl'>" +
-      (cut ? "<span class='plmore'>… " + cut + " earlier</span>" : "") +
-      shown.map(ev => "<span><i style='background:" + PITCH_COL[ev.r] + "'></i>" + ev.n + " " + esc(ev.t) + " " + ev.v + "</span>").join("") +
-      (ab.showResult ? "<span class='plresult" + (ab.result.split(" · ")[0].length <= 10 ? " nowrap" : "") + "'>! " + esc(ab.result.split(" · ")[0]) + "</span>" +
-                       (ab.result.includes(" · ") ? "<span class='plloc'>· " + esc(ab.result.split(" · ")[1]) + "</span>" : "")
-                     : "<span class='plcount'>" + abCount(ab.events) + "</span>") +
+    const vw = viewedAB(g);
+    if (!vw) return "";
+    let ab = vw.ab;
+    const cut = activeCut(g, ab);
+    const cutAB = cut ? { ...ab, events: ab.events.filter(ev => ev.n <= cut.n), showResult: false } : ab;
+    const cutN = cut ? cut.n : Infinity;
+    const shownAll = ab.events.slice(Math.max(0, ab.events.length - MAX_PITCH_LIST));
+    const cutIdx = Math.max(0, ab.events.length - MAX_PITCH_LIST);
+    const shown = shownAll;
+    // v1.47 (mockups39 layout 3): while browsing, or on a final game's card (no AT BAT line),
+    // the batter (with lineup spot) and pitcher head the list, each with a tiny team logo
+    let who = "";
+    if ((vw.browsing || g.abstract === "Final") && (ab.bname || ab.pname)) {
+      const batTeam = ab.top === true ? g.away.id : ab.top === false ? g.home.id : null;
+      const pitTeam = ab.top === true ? g.home.id : ab.top === false ? g.away.id : null;
+      const spot = lineupSpot(g, ab.bid);
+      who = (ab.bname ? "<span class='plwho'><b>" + esc(lastName(ab.bname)) + "</b>" + (spot ? " (#" + spot + ")" : "") + miniLogo(batTeam) + "</span>" : "") +
+            (ab.pname ? "<span class='plwho'>v " + esc(lastName(ab.pname)) + miniLogo(pitTeam) + "</span>" : "");
+    }
+    const list = "<div class='pl'>" + who +
+      (cutIdx ? "<span class='plmore'>… " + cutIdx + " earlier</span>" : "") +
+      shown.map(ev => "<span class='plp" + (ev.n > cutN ? " cutoff" : "") + "' data-pn='" + ev.n + "' data-cpk='" + g.pk + "' title='Show the at-bat up to this pitch'><i style='background:" + PITCH_COL[ev.r] + "'></i>" + esc(ev.c) + " - " + esc(ev.t) + " " + ev.v + "</span>").join("") + // v1.40: call code, not pitch #
+      (cutAB.showResult ? "<span class='plresult" + (ab.result.split(" · ")[0].length <= 10 ? " nowrap" : "") + "'>! " + esc(ab.result.split(" · ")[0]) + "</span>" +
+                          (ab.result.includes(" · ") ? "<span class='plloc'>· " + esc(ab.result.split(" · ")[1]) + "</span>" : "")
+                        : "<span class='plcount'>" + abCount(cutAB.events) + "</span>") +
       "</div>";
     const dv = pitchDelays[g.pk] || 0;
-    const strip = "<div class='delaystrip' data-dpk='" + g.pk + "' title='Pitch display delay (seconds)'>" +
+    const strip = g.abstract === "Live" ? "<div class='delaystrip' data-dpk='" + g.pk + "' title='Pitch display delay (seconds)'>" +
       "<input type='number' min='0' max='300' value='" + dv + "'><span class='dlbl'>sec</span>" +
-      "<input type='range' min='0' max='60' value='" + Math.min(dv, 60) + "'></div>";
+      "<input type='range' min='0' max='60' value='" + Math.min(dv, 60) + "'></div>" : "";
     const codes = [...new Set(shown.map(ev => ev.t))].filter(c => PITCH_NAMES[c]);
     const legend = codes.length
       ? "<div class='pitchlegend'>" + codes.map(c => c + " " + PITCH_NAMES[c]).join(" · ") + "</div>" : "";
-    return "<div class='abzone'>" + list + zoneSVG(ab, g.pk) + strip + legend + "</div>";
+    return "<div class='abzone'>" + list + zoneSVG(cutAB, g, vw) + strip + legend + "</div>";
   }
 
   // ---------- pre-game odds snapshots ----------
@@ -1036,17 +1324,26 @@
       "</div>";
 
     let statebar = "";
-    if (live) {
-      const outs = [0, 1, 2].map(i => "<i class='" + (i < (g.outs || 0) ? "on" : "") + "'></i>").join("");
+    // v1.48: while browsing (or on a selected final card) the bases / count / outs are the
+    // browsed at-bat's: runners + outs it started with, count from the pitches on screen
+    const vw = (live || final) && state.marked.has(g.pk) ? viewedAB(g) : null;
+    const browsed = vw && (vw.browsing || final) ? vw.ab : null;
+    if (live || browsed) {
+      let bases = g.runners, nOuts = g.outs || 0, bso = (g.balls ?? 0) + "-" + (g.strikes ?? 0);
+      if (browsed) {
+        const cut = activeCut(g, browsed), evs = cut ? browsed.events.filter(ev => ev.n <= cut.n) : browsed.events, c = abCountRaw(evs);
+        bases = { first: !!browsed.sb[1], second: !!browsed.sb[2], third: !!browsed.sb[3] }; nOuts = browsed.so; bso = c[0] + "-" + c[1];
+      }
+      const outs = [0, 1, 2].map(i => "<i class='" + (i < nOuts ? "on" : "") + "'></i>").join("");
       statebar =
-        "<div class='statebar'>" +
-          "<span class='bases' title='Runners on base'>" +
-            "<i class='b2 " + (g.runners.second ? "on" : "") + "'></i>" +
-            "<i class='b3 " + (g.runners.third ? "on" : "") + "'></i>" +
-            "<i class='b1 " + (g.runners.first ? "on" : "") + "'></i>" +
+        "<div class='statebar" + (browsed ? " browsed" : "") + "'>" +
+          "<span class='bases' title='Runners on base" + (browsed ? " when this at-bat began" : "") + "'>" +
+            "<i class='b2 " + (bases.second ? "on" : "") + "'></i>" +
+            "<i class='b3 " + (bases.third ? "on" : "") + "'></i>" +
+            "<i class='b1 " + (bases.first ? "on" : "") + "'></i>" +
           "</span>" +
-          "<span class='bso'>" + (g.balls ?? 0) + "-" + (g.strikes ?? 0) + "</span>" +
-          "<span class='outdots' title='Outs'>" + outs + "</span>" +
+          "<span class='bso'>" + bso + "</span>" +
+          "<span class='outdots' title='Outs" + (browsed ? " when this at-bat began" : "") + "'>" + outs + "</span>" +
           "<span class='hstat'>H " + esc(g.rhe.away.hits ?? "–") + "/" + esc(g.rhe.home.hits ?? "–") + "</span>" +
         "</div>";
     }
@@ -1093,9 +1390,10 @@
       "</div>";
 
     return "<div class='card" + (lev ? " leverage" : "") + (state.marked.has(g.pk) ? " marked" : "") + "' data-pk='" + g.pk + "' id='card-" + g.pk + "'>" +
+      (state.marked.has(g.pk) ? "<span class='grip' title='Drag to reorder selected games'>⠿</span>" : "") +
       "<div class='card-top'>" + badge + (lev ? "<span class='lev-chip' title='High leverage'>⚡</span>" : "") +
       "<span class='meta'>" + meta + "</span></div>" +
-      teams + statebar + matchup + (live && state.marked.has(g.pk) ? abZoneHTML(g) : "") + context + links + "</div>";
+      teams + statebar + matchup + ((live || final) && state.marked.has(g.pk) ? abZoneHTML(g) : "") + context + links + "</div>";
 
     function playerLinkPlain(p) {
       return "<a href='" + savantPlayer(p, "batter") + "' target='_blank' rel='noopener'>" + esc(shortName(p.fullName)) + "</a>";
@@ -1103,8 +1401,78 @@
     function shortName(n) { const parts = (n || "").split(" "); return parts.length > 1 ? parts[0][0] + ". " + parts.slice(1).join(" ") : n; }
   }
 
+  // ---- v1.47 browser extras (mockups39): hold an arrow to auto-repeat, wheel over the box ----
+  state.heldNav = false;
+  function wireBrowseExtras(grid) {
+    if (grid.dataset.browseWired) return;
+    grid.dataset.browseWired = "1";
+    let holdT = null, holdI = null;
+    const stop = () => { clearTimeout(holdT); holdT = null; if (holdI) { clearInterval(holdI); holdI = null; } };
+    grid.addEventListener("mousedown", e => {
+      const nav = e.target.closest && e.target.closest("[data-pago]");
+      if (!nav || nav.dataset.pago === "live" || e.button !== 0) return;
+      e.preventDefault(); // no text selection on shift-click
+      const g = state.games.find(x => x.pk === +nav.dataset.ppk), go = nav.dataset.pago, shift = e.shiftKey;
+      if (!g) return;
+      state.heldNav = false; stop();
+      holdT = setTimeout(() => { holdI = setInterval(() => { state.heldNav = true; browseStep(g, go, shift); render(); }, 160); }, 350);
+    });
+    document.addEventListener("mouseup", () => { stop(); if (state.heldNav) setTimeout(() => { state.heldNav = false; }, 0); });
+    grid.addEventListener("wheel", e => {
+      const svg = e.target.closest && e.target.closest("svg[data-zpk]");
+      if (!svg) return;
+      const g = state.games.find(x => x.pk === +svg.dataset.zpk);
+      if (!g) return;
+      e.preventDefault(); // the box eats the wheel: up = earlier at-bat, down = later
+      browseStep(g, e.deltaY < 0 ? "up" : "down", e.shiftKey);
+      render();
+    }, { passive: false });
+  }
+
+  // ---- v1.41 drag-to-reorder selected cards ----
+  function moveMarked(from, to) {
+    const arr = [...state.marked], fi = arr.indexOf(from), ti = arr.indexOf(to);
+    if (fi < 0 || ti < 0 || fi === ti) return;
+    arr.splice(fi, 1);
+    arr.splice(arr.indexOf(to) + (fi < ti ? 1 : 0), 0, from); // dragged right → lands after the target, left → before
+    state.marked = new Set(arr);
+  }
+  function finishDrag(grid) {
+    if (state.dragPk == null) return;
+    state.dragPk = null;
+    for (const c of grid.querySelectorAll(".dragging, .drop-before, .drop-after")) { c.classList.remove("dragging", "drop-before", "drop-after"); c.draggable = false; }
+    if (state.renderPending) { state.renderPending = false; render(); }
+  }
+  function wireDrag(grid) {
+    const clearDrop = () => { for (const c of grid.querySelectorAll(".drop-before, .drop-after")) c.classList.remove("drop-before", "drop-after"); };
+    for (const card of grid.querySelectorAll(".card.marked")) {
+      const pk = +card.dataset.pk, grip = card.querySelector(".grip");
+      if (!grip) continue;
+      grip.addEventListener("mousedown", () => { card.draggable = true; });   // draggable only while the grip is held
+      grip.addEventListener("mouseup", () => { card.draggable = false; });
+      card.addEventListener("dragstart", e => {
+        state.dragPk = pk; card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(pk)); // Firefox needs data to start a drag
+      });
+      card.addEventListener("dragend", () => finishDrag(grid));
+      card.addEventListener("dragover", e => {
+        if (state.dragPk == null || state.dragPk === pk) return;
+        e.preventDefault(); e.dataTransfer.dropEffect = "move";
+        const order = [...state.marked], after = order.indexOf(state.dragPk) < order.indexOf(pk);
+        clearDrop(); card.classList.add(after ? "drop-after" : "drop-before");
+      });
+      card.addEventListener("dragleave", e => { if (!card.contains(e.relatedTarget)) card.classList.remove("drop-before", "drop-after"); });
+      card.addEventListener("drop", e => {
+        if (state.dragPk == null || state.dragPk === pk) return;
+        e.preventDefault();
+        moveMarked(state.dragPk, pk); persistMarked();
+        state.renderPending = true; finishDrag(grid);
+      });
+    }
+  }
   function render() {
     const grid = document.getElementById("grid");
+    if (state.dragPk != null) { state.renderPending = true; return; } // a poll mustn't rebuild the cards mid-drag
     if (!state.games.length) {
       grid.innerHTML = "<div class='empty'>No MLB games scheduled today.</div>";
       return;
@@ -1113,11 +1481,14 @@
     // selection doesn't create its own section — it just wins the ordering (marked first
     // within the flow), and the card is enlarged by its zone panel. Grid stays continuous.
     const mk = g => state.marked.has(g.pk) ? 0 : 1;
+    // v1.41: selected games sort among themselves by SELECTION order (state.marked is insertion-
+    // ordered; drag-to-reorder rewrites it; deselecting forgets the slot) — never by watchability
+    const order = [...state.marked], sel = (a, b) => order.indexOf(a.pk) - order.indexOf(b.pk);
     if (state.sortWatch) {
       const grp = g => g.abstract === "Live" ? 0 : g.abstract === "Final" ? 2 : 1;
-      games.sort((a, b) => grp(a) - grp(b) || mk(a) - mk(b) || watchScore(b) - watchScore(a));
+      games.sort((a, b) => grp(a) - grp(b) || mk(a) - mk(b) || (mk(a) === 0 ? sel(a, b) : watchScore(b) - watchScore(a)));
     } else {
-      games.sort((a, b) => mk(a) - mk(b) || a.start - b.start);
+      games.sort((a, b) => mk(a) - mk(b) || (mk(a) === 0 ? sel(a, b) : a.start - b.start));
     }
     let html = "", lastGroup = null;
     for (const g of games) {
@@ -1131,12 +1502,25 @@
     for (const card of grid.querySelectorAll(".card")) {
       card.addEventListener("click", e => {
         const nav = e.target.closest && e.target.closest("[data-pago]");
-        if (nav) {                                   // previous-PA browser: never toggles selection
-          const ppk = +nav.dataset.ppk, go = nav.dataset.pago, ph = state.paHist.get(ppk);
-          const n = ph ? ph.list.length : 0, v = state.paView.get(ppk);
-          if (go === "live") state.paView.delete(ppk);
-          else if (go === "-1") { if (v == null) { if (n) state.paView.set(ppk, n - 1); } else if (v > 0) state.paView.set(ppk, v - 1); }
-          else if (v != null) { if (v + 1 >= n) state.paView.delete(ppk); else state.paView.set(ppk, v + 1); }
+        if (nav) {                                   // at-bat browser: never toggles selection
+          if (state.heldNav) return;                 // v1.47: a hold-to-repeat already stepped; swallow the click
+          const gg = state.games.find(x => x.pk === +nav.dataset.ppk);
+          if (gg) browseStep(gg, nav.dataset.pago, e.shiftKey);
+          render();
+          return;
+        }
+        const zone = e.target.closest && e.target.closest("svg[data-zpk]");
+        if (zone) {                                  // v1.45: the grey box toggles type ↔ number labels, never the selection
+          const zpk = +zone.dataset.zpk;
+          dotLabels[zpk] = dotLabels[zpk] === "n" ? "t" : "n";
+          saveDotLabels(); render();
+          return;
+        }
+        const pl = e.target.closest && e.target.closest(".plp[data-pn]");
+        if (pl) {                                    // v1.47: cut the at-bat at this pitch / clear the cut
+          const cpk = +pl.dataset.cpk, gg = state.games.find(x => x.pk === cpk), vw = gg && viewedAB(gg);
+          if (vw) { const cur = activeCut(gg, vw.ab), n = +pl.dataset.pn;   // v1.48: another pitch moves the cut; the same pitch clears it
+            cur && cur.n === n ? state.pitchCut.delete(cpk) : state.pitchCut.set(cpk, { abIdx: vw.ab.abIdx, n }); }
           render();
           return;
         }
@@ -1144,13 +1528,20 @@
         const pk = +card.dataset.pk;
         state.marked.has(pk) ? state.marked.delete(pk) : state.marked.add(pk);
         persistMarked();
+        // v1.44: a game selected for the first time starts on a 14s spoiler delay (Ryan, 9/13);
+        // a delay he has already set (including an explicit 0) is left alone
+        if (state.marked.has(pk) && pitchDelays[pk] == null) { pitchDelays[pk] = 14; saveDelays(); }
         // newly selected live game: fetch its at-bat right away so the zone appears fast
         const g = state.games.find(x => x.pk === pk);
         if (state.marked.has(pk) && g && g.abstract === "Live" && !state.abData.has(pk))
           fetchAB(pk).then(render);
+        if (state.marked.has(pk) && g && g.abstract === "Final") loadFinalGame(pk).then(render); // v1.47: final games browse too
+        if (!state.marked.has(pk)) { state.paView.delete(pk); state.pitchCut.delete(pk); }
         render(); // selection changes the ordering (pinned to top / restored)
       });
     }
+    wireDrag(grid);
+    wireBrowseExtras(grid);
     for (const strip of grid.querySelectorAll(".delaystrip")) {
       const pk = +strip.dataset.dpk;
       const num = strip.querySelector("input[type=number]"), rng = strip.querySelector("input[type=range]");
@@ -1220,7 +1611,12 @@
       const watched = state.games.filter(g => g.abstract === "Live" && state.marked.has(g.pk));
       await Promise.all(watched.map(g => fetchAB(g.pk)));
       for (const pk of [...state.abData.keys()])
-        if (!watched.some(g => g.pk === pk)) { state.abData.delete(pk); state.pitchSeen.delete(pk); state.lastCurIdx.delete(pk); state.lastAB.delete(pk); state.paHist.delete(pk); state.paView.delete(pk); }
+        if (!watched.some(g => g.pk === pk)) { state.abData.delete(pk); state.pitchSeen.delete(pk); state.lastCurIdx.delete(pk); state.lastAB.delete(pk); }
+      // v1.47: selected FINAL games get their whole-game PA list (+ boxscore for lineup spots) once
+      const finals = state.games.filter(g => g.abstract === "Final" && state.marked.has(g.pk));
+      await Promise.all(finals.map(g => loadFinalGame(g.pk)));
+      for (const pk of [...state.gamePAs.keys()])
+        if (!watched.some(g => g.pk === pk) && !finals.some(g => g.pk === pk)) { state.gamePAs.delete(pk); state.paView.delete(pk); state.finalBox.delete(pk); state.pitchCut.delete(pk); }
 
       // slug cache for all linkable players
       const ids = [];
@@ -1275,6 +1671,48 @@
     paintBV();
     render();
   });
+  // ---- v1.46 "Arrow…" panel: every control writes arrowOpts, saves, and re-renders the cards ----
+  const btnArrow = document.getElementById("btnArrow"), arrowPop = document.getElementById("arrowPop");
+  const PCT = { curve: 100, opacity: 100 }; // sliders shown in % for these; stored as fractions
+  function paintArrowPop() {
+    const o = arrowOpts;
+    arrowPop.querySelectorAll("input[type=range]").forEach(inp => {
+      const k = inp.dataset.opt, v = PCT[k] ? Math.round(o[k] * PCT[k]) : o[k];
+      inp.value = v;
+      const out = arrowPop.querySelector("output[data-out='" + k + "']");
+      if (out) out.textContent = PCT[k] ? v + "%" : k === "scale" ? v + " px/in" : v;
+    });
+    arrowPop.querySelectorAll(".seg").forEach(seg => {
+      const k = seg.dataset.opt, cur = k === "ring" ? (o.ring ? "1" : "0") : String(o[k]);
+      seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === cur));
+    });
+    const cc = arrowPop.querySelector("input[data-opt='curveColor']"), rc = arrowPop.querySelector("input[data-opt='ringColor']");
+    cc.value = o.curveColor; cc.disabled = o.curveMode !== "single";
+    rc.value = o.ringColor; rc.disabled = o.ringMode !== "single";
+  }
+  function setArrowOpt(k, v) {
+    arrowOpts[k] = v; saveArrowOpts(); paintArrowPop(); render();
+  }
+  arrowPop.addEventListener("input", e => {
+    const inp = e.target, k = inp.dataset.opt;
+    if (!k) return;
+    if (inp.type === "range") setArrowOpt(k, PCT[k] ? +inp.value / PCT[k] : +inp.value);
+    else if (inp.type === "color") setArrowOpt(k, inp.value);
+  });
+  arrowPop.addEventListener("click", e => {
+    const b = e.target.closest(".seg button");
+    if (b) { const k = b.parentElement.dataset.opt; setArrowOpt(k, k === "ring" ? b.dataset.v === "1" : b.dataset.v); }
+  });
+  document.getElementById("arrowReset").addEventListener("click", () => { arrowOpts = { ...ARROW_DEF }; saveArrowOpts(); paintArrowPop(); render(); });
+  function openArrowPop(on) {
+    arrowPop.classList.toggle("open", on);
+    btnArrow.setAttribute("aria-expanded", on ? "true" : "false");
+    if (on) paintArrowPop();
+  }
+  btnArrow.addEventListener("click", () => openArrowPop(!arrowPop.classList.contains("open")));
+  document.addEventListener("click", e => { if (arrowPop.classList.contains("open") && !e.target.closest(".arrowwrap")) openArrowPop(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && arrowPop.classList.contains("open")) openArrowPop(false); });
+  paintArrowPop();
 
   tick();
   setInterval(tick, POLL_MS);
@@ -1318,15 +1756,14 @@
   // table's data date; refreshed when /mlb regenerates the WILDCARD block.
   const FIELD = {
     CLE:{id:114, name:"Guardians", gb:0.0,  lg:"AL"},
-    TOR:{id:141, name:"Blue Jays", gb:0.0,  lg:"AL"},
-    TEX:{id:140, name:"Rangers",   gb:2.0,  lg:"AL"},
+    TOR:{id:141, name:"Blue Jays", gb:1.0,  lg:"AL"},
+    TEX:{id:140, name:"Rangers",   gb:1.5,  lg:"AL"},
     BAL:{id:110, name:"Orioles",   gb:3.0,  lg:"AL"},
-    MIN:{id:142, name:"Twins",     gb:3.5,  lg:"AL"},
-    AZ: {id:109, name:"D-backs",   gb:0.0,  lg:"NL"},
-    SD: {id:135, name:"Padres",    gb:0.5,  lg:"NL"},
-    STL:{id:138, name:"Cardinals", gb:4.0,  lg:"NL"},
-    MIA:{id:146, name:"Marlins",   gb:4.0,  lg:"NL"},
-    PIT:{id:134, name:"Pirates",   gb:5.0,  lg:"NL"}
+    DET:{id:116, name:"Tigers",    gb:4.5,  lg:"AL"},
+    CHC:{id:112, name:"Cubs",      gb:-1.5, lg:"NL"},
+    PHI:{id:143, name:"Phillies",  gb:-1.0, lg:"NL"},
+    SD: {id:135, name:"Padres",    gb:0.0,  lg:"NL"},
+    AZ: {id:109, name:"D-backs",   gb:2.5,  lg:"NL"}
   };
   const BYID = {};
   Object.keys(FIELD).forEach(k => { BYID[FIELD[k].id] = Object.assign({abbr:k}, FIELD[k]); });
@@ -1444,19 +1881,27 @@
   }
   async function liveRanks(){
     const url = "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=2026&standingsTypes=regularSeason"
-      + "&fields=records,league,id,teamRecords,team,id,divisionRank,wins,losses,winningPercentage";
+      + "&fields=records,league,id,teamRecords,team,id,divisionRank,gamesBack,division,wins,losses,winningPercentage";
     const r = await fetch(url);
     if (!r.ok) throw new Error("HTTP " + r.status);
     const data = await r.json();
     const byLg = {AL: [], NL: []};
     const ID2AB = {}; Object.keys(IDS).forEach(a => ID2AB[IDS[a]] = a);
+    Object.assign(ID2AB, {139: "TB", 145: "CWS", 117: "HOU", 158: "MIL", 119: "LAD", 144: "ATL"}); // the six leaders IDS omits
+    const DIVN = {201: "East", 202: "Central", 200: "West", 204: "East", 205: "Central", 203: "West"};
+    // division leader + runner-up per division (for the O3 "pairs" tags)
+    const leaders = {}, runners = {};
     for (const rec of (data.records || [])) {
       const lg = rec.league && rec.league.id === 103 ? "AL" : "NL";
+      const divId = rec.division && rec.division.id;        // one record per division
       for (const tr of (rec.teamRecords || [])) {
-        if (tr.divisionRank === "1") continue;                 // division leaders excluded
         const ab = ID2AB[tr.team.id];
+        const t = {ab, lg, pct: parseFloat(tr.winningPercentage || "0"), w: tr.wins || 0, l: tr.losses || 0,
+                   div: DIVN[divId] || "", gb: parseFloat(tr.gamesBack) || 0};
+        if (tr.divisionRank === "1") { if (ab) leaders[divId] = t; continue; }  // division leaders excluded from the pool
+        if (tr.divisionRank === "2" && ab) runners[divId] = t;
         if (!ab) continue;
-        byLg[lg].push({ab, pct: parseFloat(tr.winningPercentage || "0"), w: tr.wins || 0, l: tr.losses || 0});
+        byLg[lg].push(t);
       }
     }
     const out = {AL: {}, NL: {}}, recs = {AL: [], NL: []};
@@ -1464,7 +1909,32 @@
       byLg[lg].sort((a, b) => (b.pct - a.pct) || (b.w - a.w))
         .forEach((t, i) => { out[lg][t.ab] = i + 1; recs[lg].push(t); });
     }
-    return {ranks: out, recs};
+    // pairs: runner-up within 3.0 of the lead -> where would the LEADER's record sit in the
+    // wild-card order if the two swapped (runner-up becomes leader, leader drops into the pool)?
+    const pairs = {AL: [], NL: []};
+    for (const d of Object.keys(leaders)) {
+      const L = leaders[d], R = runners[d];
+      if (!R || !(R.gb <= 3.0)) continue;
+      const pool = recs[L.lg].filter(t => t.ab !== R.ab).concat([L]).sort((a, b) => (b.pct - a.pct) || (b.w - a.w));
+      pairs[L.lg].push({leader: L.ab, runner: R.ab, div: L.div, gb: R.gb, slot: pool.findIndex(t => t.ab === L.ab) + 1});
+    }
+    return {ranks: out, recs, pairs};
+  }
+  let showPairs = true;
+  try { if (localStorage.getItem("mlbWCPairs") === "off") showPairs = false; } catch (e) {}
+  function applyPairs(pairs){
+    document.querySelectorAll(".wc-pair").forEach(el => el.remove());
+    if (!showPairs || !pairs) return;
+    for (const lg of ["AL", "NL"]) for (const p of pairs[lg] || []) {
+      const tr = document.querySelector('.wc-hist[data-lg="' + lg + '"]');
+      const row = tr && tr.parentElement.querySelector('tr[data-team="' + p.runner + '"]');
+      if (!row) continue;
+      const tag = document.createElement("span");
+      tag.className = "wc-pair" + (p.gb <= 2 ? "" : " muted");
+      tag.textContent = "↔ " + p.leader + " lead " + p.gb.toFixed(1) + (p.slot <= 3 ? " for WC" + p.slot : " · loser #" + p.slot); // v1.48 wording (Ryan)
+      tag.title = p.leader + " leads the " + p.div + " by " + p.gb.toFixed(1) + " over " + p.runner + ". If they swapped, " + p.leader + "'s record would rank #" + p.slot + " in this table.";
+      row.cells[0].appendChild(tag);
+    }
   }
   /* live W-L / GB: overwrite the snapshot table's cells from the same standings fetch.
      GB is computed against the LIVE third wild card (which may differ from the row
@@ -1566,6 +2036,17 @@
       panel.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '">' + svg + "</svg>";
     });
   }
+  let lastPairs = null;
+  const togP = document.getElementById("togPairs");
+  if (togP) {
+    togP.setAttribute("aria-pressed", showPairs ? "true" : "false");
+    togP.addEventListener("click", () => {
+      showPairs = !showPairs;
+      togP.setAttribute("aria-pressed", showPairs ? "true" : "false");
+      try { localStorage.setItem("mlbWCPairs", showPairs ? "on" : "off"); } catch (e) {}
+      applyPairs(lastPairs);
+    });
+  }
   async function run(){
     let hist = loadHist();
     try {
@@ -1573,7 +2054,7 @@
       const live = await liveRanks();
       hist[today] = live.ranks;                        // overwrite today's snapshot with live
       hist = saveHist(hist);
-      updateWLGB(live.recs);
+      updateWLGB(live.recs); applyPairs(live.pairs); lastPairs = live.pairs;
     } catch (e) { hist = saveHist(hist); }             // offline: keep seed/stored history
     requestAnimationFrame(() => render(hist));
     setInterval(async () => {
@@ -1581,7 +2062,7 @@
         const live = await liveRanks();
         hist[ptDate()] = live.ranks;
         hist = saveHist(hist);
-        updateWLGB(live.recs);
+        updateWLGB(live.recs); applyPairs(live.pairs); lastPairs = live.pairs;
         render(hist);
       } catch (e) {}                                   // offline tick: keep last values
     }, 60000);

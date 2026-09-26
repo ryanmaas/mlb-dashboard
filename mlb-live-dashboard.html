@@ -193,6 +193,10 @@
   /* v1.53: the same panel under a pitcher link in the watch guide / tomorrow's list (no card) */
   #guide li, #tomorrow li { position: relative; }
   .arswrap.float .arsenal { right: auto; width: 400px; max-width: 100%; }
+  /* v1.54: a selected card's transform makes it a stacking context, which trapped the panel's z-index
+     under every later card. While a panel is open its host (card or list item) is lifted above its
+     siblings — still under the sticky header (z-index 5). */
+  .card.arsopen, #guide li.arsopen, #tomorrow li.arsopen { z-index: 4; }
   .arsenal .arsx:hover { color: var(--text-primary); }
   .card.marked {
     border-color: var(--mark-ring, var(--link));
@@ -535,17 +539,17 @@
 
 <section class="guide" id="guide">
 <!-- WATCH-GUIDE:START -->
-<div data-guide-date="2026-09-19">
-  <h2>Today&rsquo;s watch guide <span class="gdate">Saturday, Sep 19</span><span class="gstale" id="guideStale"></span></h2>
+<div data-guide-date="2026-09-26">
+  <h2>Today&rsquo;s watch guide <span class="gdate">Saturday, Sep 26</span><span class="gstale" id="guideStale"></span></h2>
   <ul>
-    <li><b>Blue Jays @ Rangers, 4:05 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/jose-soriano-667755?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Soriano</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/cal-quantrill-615698?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Quantrill</a>. Texas routed Toronto 7-1 behind Rocker and is now 1.0 behind the White Sox for the last card and tied with Houston (77-77) for the West; the Jays are 2.0 out with an elimination number that shrinks with every loss. Quantrill (2.90 ERA) has been the Rangers&rsquo; most reliable arm; deGrom goes Sunday.</li>
-    <li><b>Tigers @ White Sox, 11:10 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/jackson-jobe-695549?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Jobe</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/sean-burke-680732?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Burke</a>. Detroit hung 11 on Chicago Friday, so the Sox are a game back of Cleveland in the Central and holding WC3 by a single game over Texas. The Tigers at 5.0 out are technically alive; this is a matinee you can have on while the rest of the slate loads.</li>
-    <li><b>Athletics @ Guardians, 3:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/jacob-lopez-682052?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Lopez</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/tanner-bibee-676440?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Bibee</a>. Cleveland is back on top of the Central (79-75) at 89% to make it; Bibee against the A&rsquo;s is the easiest path on the board to a two-game lead.</li>
-    <li><b>Braves @ Astros, 4:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/grant-holmes-656550?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Holmes</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/hayden-wesneski-669713?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wesneski</a>. Houston lost 6-2 as Atlanta clinched its berth (Harris, Acu&ntilde;a and Olson two-run homers) and is now tied with Texas; Braves&rsquo; magic number for the East is 3.</li>
-    <li><b>Yankees @ D-backs, 5:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/cam-schlittler-693645?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Schlittler</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/brandon-pfaadt-694297?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Pfaadt</a>. Arizona is 5.0 behind the NL cut after a 9-2 loss (FanGraphs 5%) and a loss plus a Padres win over Miami at 5:40 (<a href="https://baseballsavant.mlb.com/savant-player/eury-perez-691587?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">E. P&eacute;rez</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/casey-mize-663554?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Mize</a>) all but ends it.</li>
+    <li><b>Pirates @ Tigers, 10:10 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/kirby-yates-489446?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Yates</a> (opener) vs. <a href="https://baseballsavant.mlb.com/savant-player/justin-verlander-434378?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Verlander</a>. Nothing at stake, but Verlander at Comerica on the season&rsquo;s penultimate day is worth a tab.</li>
+    <li><b>Rangers @ Twins, 1:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/nathan-eovaldi-543135?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Eovaldi</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/bailey-ober-641927?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Ober</a>. Texas and Houston both lost Friday (deGrom gave up eight in four), so the West is still tied at 79-81 with two left and Houston holding the tiebreaker. The Rangers are out of the wild card, so it&rsquo;s win both and hope; a loss here with an Astros win in Oakland (6:40, <a href="https://baseballsavant.mlb.com/savant-player/hayden-wesneski-669713?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wesneski</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/jack-perkins-678022?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Perkins</a>) clinches it for Houston.</li>
+    <li><b>Guardians @ Royals, 4:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/tanner-bibee-676440?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Bibee</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/michael-wacha-608379?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wacha</a>. Cleveland leads by one with two left and Chicago owns the tiebreaker: a Guardians win plus a White Sox loss (<a href="https://baseballsavant.mlb.com/savant-player/jose-quintana-500779?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Quintana</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/davis-martin-663436?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Martin</a>, same window) clinches the Central and the bye today; otherwise it goes to Sunday. The loser hosts nobody &mdash; they&rsquo;re the 6-seed and travel.</li>
+    <li><b>Rays @ Phillies, 4:15 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/griffin-jax-643377?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Jax</a> vs. TBD. Tampa shut Philly out 2-0 while Arizona put up 11 in San Diego, so the last NL card is down to a game: Phillies 87-73, D-backs 86-74, two left each. A Phillies win today plus a D-backs loss clinches it; a Phillies loss and D-backs win means a tie going into Sunday.</li>
+    <li><b>D-backs @ Padres, 5:40 PM</b> — TBD vs. <a href="https://baseballsavant.mlb.com/savant-player/walker-buehler-621111?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Buehler</a>. Arizona&rsquo;s side of the same coin. San Diego (89-71) also isn&rsquo;t quite done: the Cubs lost twice in Boston and sit 88-73 with one game left, so the Padres hold the 4-seed unless they lose out and Chicago wins Sunday (Cubs own that tiebreaker).</li>
   </ul>
-  <p><b>Storylines:</b> Three-way tie for the NL wild cards: Cubs, Phillies and Padres are all 85-69 (order by tiebreaker: Chicago, Philly, San Diego) with magic numbers of 3, 4 and 4 &mdash; Cubs at Cincinnati 3:40 (Boyd vs. Lodolo), Phillies in Queens at 1:10 (<a href="https://baseballsavant.mlb.com/savant-player/andrew-painter-691725?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Painter</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/christian-scott-681035?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Scott</a>). Boston&rsquo;s magic number is 2 after beating Tampa; the Rays need 6 for the East and top seed. Skubal starts for the Dodgers against the Giants at 6:10. FanGraphs for the last AL spot: Guardians 89 / White Sox 76 / Astros 69 / Rangers 48 / Blue Jays 15.</p>
-  <p class="gsources">Sources: <a href="https://www.fangraphs.com/standings/playoff-odds" target="_blank" rel="noopener">FanGraphs playoff odds (9/19)</a> &middot; <a href="https://sports.yahoo.com/mlb/article/mlb-playoffs-2026-tracker-standings-schedule-clinch-scenarios-tiebreakers-playoff-bracket-and-more-201145510.html" target="_blank" rel="noopener">Yahoo playoff tracker (magic numbers)</a> &middot; <a href="https://krmg.com/2026/09/18/atlanta-braves-clinch-8th-playoff-berth-in-9-years-with-victory-over-astros/" target="_blank" rel="noopener">Braves clinch berth vs. Astros</a> &middot; <a href="https://www.mlb.com/scores/2026-09-19" target="_blank" rel="noopener">Saturday scores</a></p>
+  <p><b>Storylines:</b> Boston&rsquo;s doubleheader sweep clinched the 5-seed, so the Yankees&ndash;Red Sox wild-card series in the Bronx is set. Still open with two days left: the AL Central bye (Guardians vs. White Sox), the AL West (Astros vs. Rangers, loser goes home), the NL&rsquo;s last card (Phillies vs. D-backs), and the NL 4/5 order (Padres vs. Cubs). Colson Montgomery set the single-season strikeout record (224) Friday. FanGraphs was unreachable this morning; the odds column on the wild-card tab is my two-game estimate from the remaining matchups and tiebreakers, not theirs.</p>
+  <p class="gsources">Sources: <a href="https://www.yardbarker.com/mlb/articles/2026_mlb_daily_recap_red_sox_sweep_dh_phillies_rangers_lose/s1_17653_44350887" target="_blank" rel="noopener">Friday recap: Red Sox sweep DH, Phillies &amp; Rangers lose</a> &middot; <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">MLB standings</a> &middot; <a href="https://www.mlb.com/scores/2026-09-26" target="_blank" rel="noopener">Saturday scores</a></p>
 </div>
 <!-- WATCH-GUIDE:END -->
 </section>
@@ -555,28 +559,28 @@
 <section id="wcview" hidden>
 <div class="wc-tools"><button class="tog" id="togPairs" aria-pressed="true" title="Tag a division runner-up with the leader it's chasing and where the loser of that race would land in the wild-card order"><span class="dot"></span>Division-lead pairs</button></div>
 <!-- WILDCARD:START -->
-<div data-wc-date="2026-09-19">
+<div data-wc-date="2026-09-26">
   <h2>The 2026 wild-card race</h2>
-  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Sat, Sep 19. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
+  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Sat, Sep 26. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
   <div class="wc-panel">
     <h3>American League</h3>
     <div class="wc-wrap">
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>89-64</td><td class="wc-plus">+11.5</td><td>100%</td><td>5-4</td><td>94-68</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>84-70</td><td class="wc-plus">+6.0</td><td>100%</td><td>4-4</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="CWS"><td class="team"><b>White Sox</b><span class="wc-tag">WC3</span></td><td>78-76</td><td>&mdash;</td><td>76.2%</td><td>4-4</td><td>82-80</td><td class="wc-vsf" data-abbr="CWS">&hellip;</td></tr>
+        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>93-68</td><td class="wc-plus">+9.5</td><td>100%</td><td>1-0</td><td>94-68</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>87-74</td><td class="wc-plus">+3.5</td><td>100%</td><td>1-0</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="CWS"><td class="team"><b>White Sox</b><span class="wc-tag">WC3</span></td><td>83-77</td><td>&mdash;</td><td>100%</td><td>1-1</td><td>84-78</td><td class="wc-vsf" data-abbr="CWS">&hellip;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>77-77</td><td>1.0</td><td>47.5%</td><td>4-4</td><td>81-81</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
-        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>76-78</td><td>2.0</td><td>14.7%</td><td>4-4</td><td>80-82</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
-        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>75-79</td><td>3.0</td><td>3.1%</td><td>4-4</td><td>79-83</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
-        <tr data-team="DET"><td class="team"><b>Tigers</b></td><td>73-81</td><td>5.0</td><td>0.1%</td><td>4-4</td><td>77-85</td><td class="wc-vsf" data-abbr="DET">&hellip;</td></tr>
-        <tr class="wc-mut" data-team="MIN"><td class="team"><b>Twins</b></td><td>72-82</td><td>6.0</td><td>0.0%</td><td>4-4</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="SEA"><td class="team"><b>Mariners</b></td><td>72-82</td><td>6.0</td><td>0.4%</td><td>5-3</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>67-87</td><td>11.0</td><td>0.0%</td><td>4-4</td><td>71-91</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>61-93</td><td>17.0</td><td>0.0%</td><td>3-5</td><td>64-98</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>59-95</td><td>19.0</td><td>0.0%</td><td>4-4</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>79-81</td><td>4.0</td><td>0.0%</td><td>1-1</td><td>80-82</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
+        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>79-82</td><td>4.5</td><td>0.0%</td><td>1-0</td><td>80-82</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
+        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>78-82</td><td>5.0</td><td>0.0%</td><td>1-1</td><td>79-83</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
+        <tr class="wc-mut" data-team="MIN"><td class="team"><b>Twins</b></td><td>76-84</td><td>7.0</td><td>0.0%</td><td>1-1</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="DET"><td class="team"><b>Tigers</b></td><td>75-85</td><td>8.0</td><td>0.0%</td><td>1-1</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SEA"><td class="team"><b>Mariners</b></td><td>74-86</td><td>9.0</td><td>0.0%</td><td>1-1</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>68-92</td><td>15.0</td><td>0.0%</td><td>1-1</td><td>69-93</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>64-96</td><td>19.0</td><td>0.0%</td><td>1-1</td><td>65-97</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>62-98</td><td>21.0</td><td>0.0%</td><td>1-1</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="AL"></div>
@@ -588,19 +592,19 @@
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC1</span></td><td>85-69</td><td>0.0</td><td>99.9%</td><td>5-3</td><td>90-72</td><td class="wc-vsf" data-abbr="CHC">&hellip;</td></tr>
-        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC2</span></td><td>85-69</td><td>0.0</td><td>99.1%</td><td>4-4</td><td>89-73</td><td class="wc-vsf" data-abbr="PHI">&hellip;</td></tr>
-        <tr data-team="SD"><td class="team"><b>Padres</b><span class="wc-tag">WC3</span></td><td>85-69</td><td>&mdash;</td><td>96.0%</td><td>4-4</td><td>89-73</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
+        <tr data-team="SD"><td class="team"><b>Padres</b><span class="wc-tag">WC1</span></td><td>89-71</td><td class="wc-plus">+2.0</td><td>100%</td><td>1-1</td><td>90-72</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
+        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC2</span></td><td>88-73</td><td class="wc-plus">+0.5</td><td>100%</td><td>1-0</td><td>89-73</td><td class="wc-vsf" data-abbr="CHC">&hellip;</td></tr>
+        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC3</span></td><td>87-73</td><td>&mdash;</td><td>~80%</td><td>1-1</td><td>88-74</td><td class="wc-vsf" data-abbr="PHI">&hellip;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="AZ"><td class="team"><b>D-backs</b></td><td>80-74</td><td>5.0</td><td>5.1%</td><td>4-4</td><td>84-78</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
-        <tr class="wc-mut" data-team="PIT"><td class="team"><b>Pirates</b></td><td>77-77</td><td>8.0</td><td>0.0%</td><td>4-4</td><td>81-81</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="MIA"><td class="team"><b>Marlins</b></td><td>76-78</td><td>9.0</td><td>0.0%</td><td>4-4</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="STL"><td class="team"><b>Cardinals</b></td><td>75-79</td><td>10.0</td><td>0.0%</td><td>4-4</td><td>79-83</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>72-82</td><td>13.0</td><td>0.0%</td><td>4-4</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>72-82</td><td>13.0</td><td>0.0%</td><td>3-5</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>70-84</td><td>15.0</td><td>0.0%</td><td>4-4</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>64-90</td><td>21.0</td><td>0.0%</td><td>3-5</td><td>67-95</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>56-98</td><td>29.0</td><td>0.0%</td><td>3-5</td><td>59-103</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="AZ"><td class="team"><b>D-backs</b></td><td>86-74</td><td>1.0</td><td>~20%</td><td>1-1</td><td>87-75</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
+        <tr class="wc-mut" data-team="PIT"><td class="team"><b>Pirates</b></td><td>81-79</td><td>6.0</td><td>0.0%</td><td>1-1</td><td>82-80</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="MIA"><td class="team"><b>Marlins</b></td><td>79-81</td><td>8.0</td><td>0.0%</td><td>1-1</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="STL"><td class="team"><b>Cardinals</b></td><td>77-83</td><td>10.0</td><td>0.0%</td><td>1-1</td><td>78-84</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>76-84</td><td>11.0</td><td>0.0%</td><td>1-1</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>74-86</td><td>13.0</td><td>0.0%</td><td>1-1</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>73-87</td><td>14.0</td><td>0.0%</td><td>1-1</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>65-95</td><td>22.0</td><td>0.0%</td><td>1-1</td><td>66-96</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>57-103</td><td>30.0</td><td>0.0%</td><td>1-1</td><td>58-104</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="NL"></div>
@@ -1512,12 +1516,14 @@
   function closeFloatArsenal() {
     if (!state.arsFloat) return;
     const w = state.arsFloat.host.querySelector(":scope > .arswrap.float"); if (w) w.remove();
+    state.arsFloat.host.classList.remove("arsopen");
     state.arsFloat = null;
   }
   function paintFloatArsenal() {
     const f = state.arsFloat; if (!f) return;
     let w = f.host.querySelector(":scope > .arswrap.float");
     if (!w) { w = document.createElement("div"); w.className = "arswrap float"; f.host.appendChild(w); }
+    f.host.classList.add("arsopen");
     w.innerHTML = arsenalPanel(f.pid, f.name, null);
   }
   function openFloatArsenal(host, pid, name) {
@@ -1645,7 +1651,7 @@
         "<a class='pill' href='" + fgGraph(g) + "' target='_blank' rel='noopener'>FG graph</a>" +
       "</div>";
 
-    return "<div class='card" + (lev ? " leverage" : "") + (state.marked.has(g.pk) ? " marked" : "") + "' data-pk='" + g.pk + "' id='card-" + g.pk + "'>" +
+    return "<div class='card" + (lev ? " leverage" : "") + (state.marked.has(g.pk) ? " marked" : "") + (state.arsOpen && state.arsOpen.pk === g.pk ? " arsopen" : "") + "' data-pk='" + g.pk + "' id='card-" + g.pk + "'>" +
       (state.marked.has(g.pk) ? "<span class='grip' title='Drag to reorder selected games'>⠿</span>" : "") +
       "<div class='card-top'>" + badge + (lev ? "<span class='lev-chip' title='High leverage'>⚡</span>" : "") +
       "<span class='meta'>" + meta + "</span></div>" +
@@ -2061,14 +2067,13 @@
   // table's data date; refreshed when /mlb regenerates the WILDCARD block.
   const FIELD = {
     CWS:{id:145, name:"White Sox", gb:0.0,  lg:"AL"},
-    TEX:{id:140, name:"Rangers",   gb:1.0,  lg:"AL"},
-    TOR:{id:141, name:"Blue Jays", gb:2.0,  lg:"AL"},
-    BAL:{id:110, name:"Orioles",   gb:3.0,  lg:"AL"},
-    DET:{id:116, name:"Tigers",    gb:5.0,  lg:"AL"},
-    CHC:{id:112, name:"Cubs",      gb:0.0,  lg:"NL"},
+    TEX:{id:140, name:"Rangers",   gb:4.0,  lg:"AL"},
+    BAL:{id:110, name:"Orioles",   gb:4.5,  lg:"AL"},
+    TOR:{id:141, name:"Blue Jays", gb:5.0,  lg:"AL"},
+    SD: {id:135, name:"Padres",    gb:-2.0, lg:"NL"},
+    CHC:{id:112, name:"Cubs",      gb:-0.5, lg:"NL"},
     PHI:{id:143, name:"Phillies",  gb:0.0,  lg:"NL"},
-    SD: {id:135, name:"Padres",    gb:0.0,  lg:"NL"},
-    AZ: {id:109, name:"D-backs",   gb:5.0,  lg:"NL"}
+    AZ: {id:109, name:"D-backs",   gb:1.0,  lg:"NL"}
   };
   const BYID = {};
   Object.keys(FIELD).forEach(k => { BYID[FIELD[k].id] = Object.assign({abbr:k}, FIELD[k]); });

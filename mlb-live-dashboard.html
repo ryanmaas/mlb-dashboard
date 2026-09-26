@@ -197,6 +197,23 @@
      under every later card. While a panel is open its host (card or list item) is lifted above its
      siblings — still under the sticky header (z-index 5). */
   .card.arsopen, #guide li.arsopen, #tomorrow li.arsopen { z-index: 4; }
+  /* v1.55 phone layout (mockups42). Nothing here applies at desktop widths. The header opens collapsed on a
+     phone — title, Arrow…, Refresh and the tabs — and #btnHdr (a small square, hidden on the desktop) shows the
+     rest. One full-width column with --side of gutter: the old minmax(330px) column was wider than a phone
+     screen at the page's 1.25× scale, which is what pushed the cards off the right edge. */
+  #btnHdr { display: none; width: 26px; height: 26px; padding: 0; place-items: center; font-size: 13px; line-height: 1;
+            border-radius: 7px; margin-left: auto; }
+  @media (max-width: 600px) {
+    :root { --side: 7px; }
+    main { grid-template-columns: minmax(0, 1fr); padding-left: var(--side); padding-right: var(--side); overflow-x: clip; }
+    header { padding: 9px var(--side) 8px; gap: 8px 10px; }
+    #btnHdr { display: inline-grid; }
+    header.collapsed .hdr-date, header.collapsed .hdr-updated,
+    header.collapsed #togSort, header.collapsed #togLev, header.collapsed #btnTheme, header.collapsed #btnBatView { display: none; }
+    header.collapsed .controls { width: 100%; }
+    .guide { margin-left: var(--side); margin-right: var(--side); }
+    footer, #wcview, #pitchview .ref { padding-left: var(--side); padding-right: var(--side); }
+  }
   .arsenal .arsx:hover { color: var(--text-primary); }
   .card.marked {
     border-color: var(--mark-ring, var(--link));
@@ -506,6 +523,7 @@
 <header>
   <h1>⚾ MLB Live</h1>
   <span class="hdr-date" id="hdrDate"></span>
+  <button class="plain" id="btnHdr" aria-expanded="false" title="Show all controls">⌄</button>
   <div class="controls">
     <button class="tog" id="togSort" aria-pressed="true" title="Sort live, close, late games to the top"><span class="dot"></span>Watchability sort</button>
     <button class="tog" id="togLev" aria-pressed="true" title="Highlight close, late-inning games"><span class="dot"></span>Leverage highlight</button>
@@ -1962,6 +1980,17 @@
   bindToggle("togSort", "sortWatch");
   bindToggle("togLev", "leverage");
   document.getElementById("btnRefresh").addEventListener("click", tick);
+  // v1.55: phone header — collapsed unless the little button was used to open it (remembered); no effect on the desktop
+  function setHdr(open) {
+    const h = document.querySelector("header"), b = document.getElementById("btnHdr");
+    h.classList.toggle("collapsed", !open); b.setAttribute("aria-expanded", String(open)); b.textContent = open ? "⌃" : "⌄";
+    b.title = open ? "Hide controls" : "Show all controls";
+  }
+  { let open = false; try { open = localStorage.getItem("mlbHdrOpen") === "1"; } catch (e) {} setHdr(open); }
+  document.getElementById("btnHdr").addEventListener("click", () => {
+    const open = document.querySelector("header").classList.contains("collapsed");
+    setHdr(open); try { localStorage.setItem("mlbHdrOpen", open ? "1" : "0"); } catch (e) {}
+  });
   document.getElementById("btnTheme").addEventListener("click", () => {
     const r = document.documentElement;
     r.dataset.theme = r.dataset.theme === "dark" ? "light" : "dark";

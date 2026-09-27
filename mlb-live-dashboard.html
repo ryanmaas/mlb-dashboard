@@ -209,7 +209,7 @@
     header { padding: 9px var(--side) 8px; gap: 8px 10px; }
     #btnHdr { display: inline-grid; }
     header.collapsed .hdr-date, header.collapsed .hdr-updated,
-    header.collapsed #togSort, header.collapsed #togLev, header.collapsed #btnTheme, header.collapsed #btnBatView { display: none; }
+    header.collapsed #togSort, header.collapsed #togLev, header.collapsed #btnTheme, header.collapsed #btnBatView, header.collapsed #btnZoneView { display: none; }
     header.collapsed .controls { width: 100%; }
     .guide { margin-left: var(--side); margin-right: var(--side); }
     footer, #wcview, #pitchview .ref { padding-left: var(--side); padding-right: var(--side); }
@@ -529,6 +529,7 @@
     <button class="tog" id="togLev" aria-pressed="true" title="Highlight close, late-inning games"><span class="dot"></span>Leverage highlight</button>
     <button class="plain" id="btnTheme" title="Toggle light/dark">◐ Theme</button>
     <button class="plain" id="btnBatView" title="Batter-side marker in the zone: figure or lens">Batter: icon</button>
+    <button class="plain" id="btnZoneView" title="Strike zone drawn from the pitcher's side (default) or mirrored, from the batter's side">View: pitcher</button>
     <span class="arrowwrap">
       <button class="plain" id="btnArrow" aria-expanded="false" aria-controls="arrowPop" title="Break arrow on the newest pitch: scale, curve, colors">↗ Arrow…</button>
       <div id="arrowPop" role="dialog" aria-label="Break arrow options">
@@ -679,7 +680,7 @@
   <a href="https://baseballsavant.mlb.com/scoreboard" target="_blank" rel="noopener">Savant scoreboard</a>
   <a href="https://umpscorecards.com" target="_blank" rel="noopener">Ump Scorecards</a>
   <a href="https://www.fangraphs.com/scores" target="_blank" rel="noopener">FanGraphs live</a>
-  <span id="ver" title="Tracker version — if the phone shows an older number, Safari is serving a cached copy">v1.55</span>
+  <span id="ver" title="Tracker version — if the phone shows an older number, Safari is serving a cached copy">v1.56</span>
 </footer>
 
 <script>
@@ -1012,6 +1013,11 @@
   // batter-side marker style: "icon" (Ryan's batter.svg, life-size & clipped) or "lens" (F4 ellipse)
   let batView = "icon";
   try { if (localStorage.getItem("mlbBatView") === "lens") batView = "lens"; } catch (e) {}
+  // v1.56 zone view: "pitcher" (the default, untouched) or "batter" — the same panel mirrored left-right:
+  // the horizontal axis flips (pitches, zone, break arrows), the batter figure/lens and the pitcher's fist
+  // change corners through their existing L/R logic, and the plate glyph turns upside down. Nothing else moves.
+  let zoneView = "pitcher";
+  try { if (localStorage.getItem("mlbZoneView") === "batter") zoneView = "batter"; } catch (e) {}
   // v1.45 dot labels (mockups37): per game, "n" = pitch number (default) or "t" = pitch-type code;
   // clicking the grey box toggles it (instead of selecting/deselecting); remembered across reloads
   let dotLabels = {};
@@ -1097,20 +1103,22 @@
     const pk = g.pk;
     // uniform px-per-foot on both axes so the zone keeps its true taller-than-wide shape
     const S = 48, W = 3 * S, H = Math.round(4.2 * S), r = 8;
-    const x = v => (1.5 - v) * S;   // pitcher's view (mirrored)
+    const bv = zoneView === "batter", flipLR = h => (h === "R" ? "L" : h === "L" ? "R" : h);   // v1.56
+    const x = bv ? v => (1.5 + v) * S : v => (1.5 - v) * S;   // pitcher's view (mirrored) — or the batter's, un-mirrored
     const z = v => (4.6 - v) * S;
     // zone rect at RULEBOOK plate width (17" = ±0.708 ft), like broadcast overlays —
     // not the ±0.83 ft Statcast detection width (plate + ball radius), which reads squat
     const ZH = 0.708;
-    const zx = x(ZH), zw = x(-ZH) - zx, zy = z(ab.szT), zh = z(ab.szB) - zy;
+    const zx = Math.min(x(ZH), x(-ZH)), zw = Math.abs(x(-ZH) - x(ZH)), zy = z(ab.szT), zh = z(ab.szB) - zy;   // min/abs: the same rect whichever way the axis runs
     let s = "<svg width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "' style='overflow:visible' data-zpk='" + pk + "'>";
     s += "<rect x='0' y='0' width='" + W + "' height='" + H + "' rx='6' fill='var(--surface-2)'/>";
     const typeLabels = dotLabels[pk] !== "n"; // v1.47: pitch-type labels by default (Ryan, 9/15); "n" = numbers
     // batter-side lens (F4): a 34×3 "5° ellipse" on the ground beside the plate — RHB on the
     // pitcher's right, LHB on the left. Drawn first so pitches and the plate sit on top of it.
-    if (ab.side === "R" || ab.side === "L") s += batterMark(ab.side, pk);
+    if (ab.side === "R" || ab.side === "L") s += batterMark(bv ? flipLR(ab.side) : ab.side, pk);
     const py = H - 7, pw = zw * 0.9, px2 = zx + zw * 0.05;
-    s += "<path d='M" + px2 + " " + py + " h" + pw + " l-" + (pw * 0.2) + " 4.5 h-" + (pw * 0.6) + " Z' fill='none' stroke='var(--text-muted)' stroke-width='1'/>";
+    s += bv ? "<path d='M" + px2 + " " + (py + 4.5) + " h" + pw + " l-" + (pw * 0.2) + " -4.5 h-" + (pw * 0.6) + " Z' fill='none' stroke='var(--text-muted)' stroke-width='1'/>"   // plate seen from behind: point toward us
+            : "<path d='M" + px2 + " " + py + " h" + pw + " l-" + (pw * 0.2) + " 4.5 h-" + (pw * 0.6) + " Z' fill='none' stroke='var(--text-muted)' stroke-width='1'/>";
     s += "<rect x='" + zx + "' y='" + zy + "' width='" + zw + "' height='" + zh + "' fill='none' stroke='var(--text-muted)' stroke-width='1.4'/>";
     for (let i = 1; i < 3; i++) {
       s += "<line x1='" + (zx + zw * i / 3) + "' y1='" + zy + "' x2='" + (zx + zw * i / 3) + "' y2='" + (zy + zh) + "' stroke='var(--gridline)' stroke-width='0.8'/>";
@@ -1120,7 +1128,7 @@
     // v1.46 break arrows go UNDER the dots: tail = no-spin crossing point, head = the pitch
     if (arrowOpts.which !== "none") plotted.forEach((ev, i) => {
       if (ev.px == null || ev.pz == null || (arrowOpts.which === "last" && i !== plotted.length - 1)) return;
-      const cx = x(ev.x), cy = z(ev.z), dx = -ev.px * arrowOpts.scale, dy = -ev.pz * arrowOpts.scale;
+      const cx = x(ev.x), cy = z(ev.z), dx = (bv ? 1 : -1) * ev.px * arrowOpts.scale, dy = -ev.pz * arrowOpts.scale;   // pfxX flips with the axis
       s += breakArrow(cx - dx, cy - dy, cx, cy, r, PITCH_COL[ev.r]);
     });
     plotted.forEach((ev, i) => {
@@ -1133,7 +1141,7 @@
       else
         s += "<text x='" + cx + "' y='" + (cy + 2.8) + "' text-anchor='middle' font-size='8.5' font-weight='700' fill='" + numc + "'>" + ev.n + "</text>";
     });
-    return s + handSymbol(ab.pit, W, H) + paNavSVG(g, vw) + "</svg>";
+    return s + handSymbol(bv ? flipLR(ab.pit) : ab.pit, W, H) + paNavSVG(g, vw) + "</svg>";
   }
   // running count computed from the VISIBLE pitches (so it respects the spoiler delay)
   function abCountRaw(events) {
@@ -2005,6 +2013,15 @@
     batView = batView === "icon" ? "lens" : "icon";
     try { localStorage.setItem("mlbBatView", batView); } catch (e) {}
     paintBV();
+    render();
+  });
+  const btnZV = document.getElementById("btnZoneView");   // v1.56
+  const paintZV = () => { btnZV.textContent = zoneView === "batter" ? "View: batter" : "View: pitcher"; };
+  paintZV();
+  btnZV.addEventListener("click", () => {
+    zoneView = zoneView === "batter" ? "pitcher" : "batter";
+    try { localStorage.setItem("mlbZoneView", zoneView); } catch (e) {}
+    paintZV();
     render();
   });
   // ---- v1.46 "Arrow…" panel: every control writes arrowOpts, saves, and re-renders the cards ----

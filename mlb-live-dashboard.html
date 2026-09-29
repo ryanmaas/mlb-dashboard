@@ -209,7 +209,7 @@
     header { padding: 9px var(--side) 8px; gap: 8px 10px; }
     #btnHdr { display: inline-grid; }
     header.collapsed .hdr-date, header.collapsed .hdr-updated,
-    header.collapsed #togSort, header.collapsed #togLev, header.collapsed #btnTheme, header.collapsed #btnBatView, header.collapsed #btnZoneView { display: none; }
+    header.collapsed #togSort, header.collapsed #togLev, header.collapsed #togBases, header.collapsed #btnTheme, header.collapsed #btnBatView, header.collapsed #btnZoneView { display: none; }
     header.collapsed .controls { width: 100%; }
     .guide { margin-left: var(--side); margin-right: var(--side); }
     footer, #wcview, #pitchview .ref { padding-left: var(--side); padding-right: var(--side); }
@@ -309,6 +309,17 @@
   .pl .mlogo { width: 11px; height: 11px; vertical-align: -1px; }
   .pl .plp { cursor: pointer; }
   .pl .plp.cutoff { opacity: .35; }             /* v1.47 pitches after the clicked one */
+  /* v1.57 runner lines + Base Updates line (mockups43 options 6 + 4) */
+  .pl .plrun { font-size: 10.5px; color: var(--text-muted); padding-left: 12px; margin-top: -2px; white-space: nowrap; }
+  .pl .plrun.rs { color: var(--good); font-weight: 600; }
+  .pl .plrun.ro { color: var(--critical); }
+  .pl .plrun.mid { font-style: italic; }
+  .pl .plrun.cutoff { opacity: .35; }
+  .baseupd { display: flex; align-items: center; gap: 3px; margin: -2px 0 0 52px; font-size: 11px; }
+  .baseupd svg { width: 24px; height: 24px; flex: 0 0 24px; }
+  .baseupd .arr { color: var(--text-muted); font-size: 10px; }
+  .baseupd .runs { color: var(--good); font-weight: 700; margin-left: 3px; }
+  .baseupd .outs { color: var(--critical); font-weight: 700; margin-left: 3px; }
   .pl .plcount { color: var(--text-muted); padding-left: 12px; font-size: 13px; } /* +2px (Ryan, 8/31) */ /* running count, K4-style minus parens */
   /* previous-PA browser: arrows only while hovering the grey panel itself */
   .abzone svg .panav { opacity: 0; transition: opacity .18s ease; }
@@ -527,6 +538,7 @@
   <div class="controls">
     <button class="tog" id="togSort" aria-pressed="true" title="Sort live, close, late games to the top"><span class="dot"></span>Watchability sort</button>
     <button class="tog" id="togLev" aria-pressed="true" title="Highlight close, late-inning games"><span class="dot"></span>Leverage highlight</button>
+    <button class="tog" id="togBases" aria-pressed="true" title="Under the zone once an at-bat ends: bases before → after, runs, outs"><span class="dot"></span>Base Updates</button>
     <button class="plain" id="btnTheme" title="Toggle light/dark">◐ Theme</button>
     <button class="plain" id="btnBatView" title="Batter-side marker in the zone: figure or lens">Batter: icon</button>
     <button class="plain" id="btnZoneView" title="Strike zone drawn from the pitcher's side (default) or mirrored, from the batter's side">View: pitcher</button>
@@ -558,17 +570,16 @@
 
 <section class="guide" id="guide">
 <!-- WATCH-GUIDE:START -->
-<div data-guide-date="2026-09-26">
-  <h2>Today&rsquo;s watch guide <span class="gdate">Saturday, Sep 26</span><span class="gstale" id="guideStale"></span></h2>
+<div data-guide-date="2026-09-29">
+  <h2>Today&rsquo;s watch guide <span class="gdate">Tuesday, Sep 29 &mdash; Wild Card Game 1s</span><span class="gstale" id="guideStale"></span></h2>
   <ul>
-    <li><b>Pirates @ Tigers, 10:10 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/kirby-yates-489446?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Yates</a> (opener) vs. <a href="https://baseballsavant.mlb.com/savant-player/justin-verlander-434378?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Verlander</a>. Nothing at stake, but Verlander at Comerica on the season&rsquo;s penultimate day is worth a tab.</li>
-    <li><b>Rangers @ Twins, 1:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/nathan-eovaldi-543135?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Eovaldi</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/bailey-ober-641927?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Ober</a>. Texas and Houston both lost Friday (deGrom gave up eight in four), so the West is still tied at 79-81 with two left and Houston holding the tiebreaker. The Rangers are out of the wild card, so it&rsquo;s win both and hope; a loss here with an Astros win in Oakland (6:40, <a href="https://baseballsavant.mlb.com/savant-player/hayden-wesneski-669713?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wesneski</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/jack-perkins-678022?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Perkins</a>) clinches it for Houston.</li>
-    <li><b>Guardians @ Royals, 4:10 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/tanner-bibee-676440?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Bibee</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/michael-wacha-608379?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Wacha</a>. Cleveland leads by one with two left and Chicago owns the tiebreaker: a Guardians win plus a White Sox loss (<a href="https://baseballsavant.mlb.com/savant-player/jose-quintana-500779?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Quintana</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/davis-martin-663436?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Martin</a>, same window) clinches the Central and the bye today; otherwise it goes to Sunday. The loser hosts nobody &mdash; they&rsquo;re the 6-seed and travel.</li>
-    <li><b>Rays @ Phillies, 4:15 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/griffin-jax-643377?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Jax</a> vs. TBD. Tampa shut Philly out 2-0 while Arizona put up 11 in San Diego, so the last NL card is down to a game: Phillies 87-73, D-backs 86-74, two left each. A Phillies win today plus a D-backs loss clinches it; a Phillies loss and D-backs win means a tie going into Sunday.</li>
-    <li><b>D-backs @ Padres, 5:40 PM</b> — TBD vs. <a href="https://baseballsavant.mlb.com/savant-player/walker-buehler-621111?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Buehler</a>. Arizona&rsquo;s side of the same coin. San Diego (89-71) also isn&rsquo;t quite done: the Cubs lost twice in Boston and sit 88-73 with one game left, so the Padres hold the 4-seed unless they lose out and Chicago wins Sunday (Cubs own that tiebreaker).</li>
+    <li><b>Phillies @ Braves, 11:00 AM</b> — <a href="https://baseballsavant.mlb.com/savant-player/jesus-luzardo-666200?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Luzardo</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/chris-sale-519242?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Sale</a>. Philly went 5-10 down the stretch and only clinched on the last day (7-3 over Tampa); Atlanta has been resting since it locked the East. Sale in Game 1 is the best arm of the day. Wheeler, S&aacute;nchez and Nola line up behind Luzardo, so the Phillies&rsquo; rotation is deeper than the seeding suggests.</li>
+    <li><b>White Sox @ Astros, 2:00 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/hagen-smith-696146?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">H. Smith</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/aj-blubaugh-805123?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Blubaugh</a>. The odd series: Houston is the first sub-.500 division winner since 1969 (81-81, outscored by 32) after Texas lost in Minnesota; Chicago is in for the first time since 2021 after three straight 100-loss years. Watch Alvarez, who&rsquo;s been heating up, against Murakami&rsquo;s power.</li>
+    <li><b>Red Sox @ Yankees, 5:00 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/payton-tolle-801139?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Tolle</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/cam-schlittler-693645?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Schlittler</a>. The marquee game: presumptive AL Cy Young Schlittler at home, with Judge&rsquo;s calf a question mark and Roman Anthony&rsquo;s shoulder on the other side. Boston finished 32-5 to get here and ranks top-five in both homer and walk rate.</li>
+    <li><b>Cubs @ Padres, 7:00 PM</b> — <a href="https://baseballsavant.mlb.com/savant-player/matthew-boyd-571510?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">Boyd</a> vs. <a href="https://baseballsavant.mlb.com/savant-player/michael-king-650633?stats=statcast-r-pitching-mlb" target="_blank" rel="noopener">King</a>. Chicago led baseball in most offensive measures but has no settled closer; San Diego went 41-18 since late July on the back of the best bullpen in the league. Early runs matter more here than anywhere else tonight. Bregman is playing through a facial fracture.</li>
   </ul>
-  <p><b>Storylines:</b> Boston&rsquo;s doubleheader sweep clinched the 5-seed, so the Yankees&ndash;Red Sox wild-card series in the Bronx is set. Still open with two days left: the AL Central bye (Guardians vs. White Sox), the AL West (Astros vs. Rangers, loser goes home), the NL&rsquo;s last card (Phillies vs. D-backs), and the NL 4/5 order (Padres vs. Cubs). Colson Montgomery set the single-season strikeout record (224) Friday. FanGraphs was unreachable this morning; the odds column on the wild-card tab is my two-game estimate from the remaining matchups and tiebreakers, not theirs.</p>
-  <p class="gsources">Sources: <a href="https://www.yardbarker.com/mlb/articles/2026_mlb_daily_recap_red_sox_sweep_dh_phillies_rangers_lose/s1_17653_44350887" target="_blank" rel="noopener">Friday recap: Red Sox sweep DH, Phillies &amp; Rangers lose</a> &middot; <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">MLB standings</a> &middot; <a href="https://www.mlb.com/scores/2026-09-26" target="_blank" rel="noopener">Saturday scores</a></p>
+  <p><b>Storylines:</b> Final day recap: Phillies clinched the 6-seed by beating the Rays (Arizona&rsquo;s win in San Diego didn&rsquo;t matter), and Houston took the West at exactly .500 with a 9-0 win in Oakland while Texas fell 6-4. Byes: Rays (98-64) and Guardians in the AL; Brewers (103-59, franchise record) and Dodgers (100-62) in the NL. Every series is a best-of-three at the higher seed, all three games Tue&ndash;Thu, same four time slots each day. Staff picks lean Braves, Astros, Yankees and Padres, each in three.</p>
+  <p class="gsources">Sources: <a href="https://www.mlb.com/news/top-storyline-for-each-mlb-wild-card-series-game-1-2026" target="_blank" rel="noopener">MLB.com: top storyline for each Game 1</a> &middot; <a href="https://sports.yahoo.com/mlb/article/mlb-wild-card-preview-series-predictions-x-factors-and-more-for-red-sox-yankees-cubs-padres-phillies-braves-and-white-sox-astros-001627858.html" target="_blank" rel="noopener">Yahoo: wild-card previews &amp; X-factors</a> &middot; <a href="https://www.mlb.com/scores/2026-09-29" target="_blank" rel="noopener">Tuesday scores</a></p>
 </div>
 <!-- WATCH-GUIDE:END -->
 </section>
@@ -578,28 +589,28 @@
 <section id="wcview" hidden>
 <div class="wc-tools"><button class="tog" id="togPairs" aria-pressed="true" title="Tag a division runner-up with the leader it's chasing and where the loser of that race would land in the wild-card order"><span class="dot"></span>Division-lead pairs</button></div>
 <!-- WILDCARD:START -->
-<div data-wc-date="2026-09-26">
+<div data-wc-date="2026-09-29">
   <h2>The 2026 wild-card race</h2>
-  <p class="wc-sub">Standard wild-card standings (division leaders excluded), morning of Sat, Sep 26. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
+  <p class="wc-sub">Standard wild-card standings (division leaders excluded), final &mdash; regular season complete Sep 27. GB is games ahead (+) or behind the third wild card. Odds are FanGraphs chances of reaching the postseason by any route; &ldquo;Proj rest&rdquo; is the FanGraphs projected record over remaining games. Re-run /mlb to refresh the numbers.</p>
   <div class="wc-panel">
     <h3>American League</h3>
     <div class="wc-wrap">
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>93-68</td><td class="wc-plus">+9.5</td><td>100%</td><td>1-0</td><td>94-68</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>87-74</td><td class="wc-plus">+3.5</td><td>100%</td><td>1-0</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
-        <tr data-team="CWS"><td class="team"><b>White Sox</b><span class="wc-tag">WC3</span></td><td>83-77</td><td>&mdash;</td><td>100%</td><td>1-1</td><td>84-78</td><td class="wc-vsf" data-abbr="CWS">&hellip;</td></tr>
+        <tr data-team="NYY"><td class="team"><b>Yankees</b><span class="wc-tag">WC1</span></td><td>93-68</td><td class="wc-plus">+9.5</td><td>in</td><td>—</td><td>93-68</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="BOS"><td class="team"><b>Red Sox</b><span class="wc-tag">WC2</span></td><td>87-75</td><td class="wc-plus">+3.0</td><td>in</td><td>—</td><td>87-75</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="CWS"><td class="team"><b>White Sox</b><span class="wc-tag">WC3</span></td><td>84-78</td><td>&mdash;</td><td>in</td><td>—</td><td>84-78</td><td class="wc-na">&mdash;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>79-81</td><td>4.0</td><td>0.0%</td><td>1-1</td><td>80-82</td><td class="wc-vsf" data-abbr="TEX">&hellip;</td></tr>
-        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>79-82</td><td>4.5</td><td>0.0%</td><td>1-0</td><td>80-82</td><td class="wc-vsf" data-abbr="BAL">&hellip;</td></tr>
-        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>78-82</td><td>5.0</td><td>0.0%</td><td>1-1</td><td>79-83</td><td class="wc-vsf" data-abbr="TOR">&hellip;</td></tr>
-        <tr class="wc-mut" data-team="MIN"><td class="team"><b>Twins</b></td><td>76-84</td><td>7.0</td><td>0.0%</td><td>1-1</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="DET"><td class="team"><b>Tigers</b></td><td>75-85</td><td>8.0</td><td>0.0%</td><td>1-1</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="SEA"><td class="team"><b>Mariners</b></td><td>74-86</td><td>9.0</td><td>0.0%</td><td>1-1</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>68-92</td><td>15.0</td><td>0.0%</td><td>1-1</td><td>69-93</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>64-96</td><td>19.0</td><td>0.0%</td><td>1-1</td><td>65-97</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>62-98</td><td>21.0</td><td>0.0%</td><td>1-1</td><td>63-99</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="TEX"><td class="team"><b>Rangers</b></td><td>80-82</td><td>4.0</td><td>out</td><td>—</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="BAL"><td class="team"><b>Orioles</b></td><td>79-82</td><td>4.5</td><td>out</td><td>—</td><td>79-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="TOR"><td class="team"><b>Blue Jays</b></td><td>79-83</td><td>5.0</td><td>out</td><td>—</td><td>79-83</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="MIN"><td class="team"><b>Twins</b></td><td>77-85</td><td>7.0</td><td>out</td><td>—</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="DET"><td class="team"><b>Tigers</b></td><td>76-86</td><td>8.0</td><td>out</td><td>—</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SEA"><td class="team"><b>Mariners</b></td><td>76-86</td><td>8.0</td><td>out</td><td>—</td><td>76-86</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="KC"><td class="team"><b>Royals</b></td><td>69-93</td><td>15.0</td><td>out</td><td>—</td><td>69-93</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="ATH"><td class="team"><b>Athletics</b></td><td>64-98</td><td>20.0</td><td>out</td><td>—</td><td>64-98</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="LAA"><td class="team"><b>Angels</b></td><td>62-100</td><td>22.0</td><td>out</td><td>—</td><td>62-100</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="AL"></div>
@@ -611,25 +622,25 @@
     <table>
       <thead><tr><th>Team</th><th>W-L</th><th>GB</th><th>Odds</th><th>Proj rest</th><th>Proj final</th><th>vs field</th></tr></thead>
       <tbody>
-        <tr data-team="SD"><td class="team"><b>Padres</b><span class="wc-tag">WC1</span></td><td>89-71</td><td class="wc-plus">+2.0</td><td>100%</td><td>1-1</td><td>90-72</td><td class="wc-vsf" data-abbr="SD">&hellip;</td></tr>
-        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC2</span></td><td>88-73</td><td class="wc-plus">+0.5</td><td>100%</td><td>1-0</td><td>89-73</td><td class="wc-vsf" data-abbr="CHC">&hellip;</td></tr>
-        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC3</span></td><td>87-73</td><td>&mdash;</td><td>~80%</td><td>1-1</td><td>88-74</td><td class="wc-vsf" data-abbr="PHI">&hellip;</td></tr>
+        <tr data-team="SD"><td class="team"><b>Padres</b><span class="wc-tag">WC1</span></td><td>91-71</td><td class="wc-plus">+3.0</td><td>in</td><td>—</td><td>91-71</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="CHC"><td class="team"><b>Cubs</b><span class="wc-tag">WC2</span></td><td>89-73</td><td class="wc-plus">+1.0</td><td>in</td><td>—</td><td>89-73</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="PHI"><td class="team"><b>Phillies</b><span class="wc-tag">WC3</span></td><td>88-74</td><td>&mdash;</td><td>in</td><td>—</td><td>88-74</td><td class="wc-na">&mdash;</td></tr>
         <tr class="wc-cut"><td colspan="7">playoff cut line</td></tr>
-        <tr data-team="AZ"><td class="team"><b>D-backs</b></td><td>86-74</td><td>1.0</td><td>~20%</td><td>1-1</td><td>87-75</td><td class="wc-vsf" data-abbr="AZ">&hellip;</td></tr>
-        <tr class="wc-mut" data-team="PIT"><td class="team"><b>Pirates</b></td><td>81-79</td><td>6.0</td><td>0.0%</td><td>1-1</td><td>82-80</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="MIA"><td class="team"><b>Marlins</b></td><td>79-81</td><td>8.0</td><td>0.0%</td><td>1-1</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="STL"><td class="team"><b>Cardinals</b></td><td>77-83</td><td>10.0</td><td>0.0%</td><td>1-1</td><td>78-84</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>76-84</td><td>11.0</td><td>0.0%</td><td>1-1</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>74-86</td><td>13.0</td><td>0.0%</td><td>1-1</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>73-87</td><td>14.0</td><td>0.0%</td><td>1-1</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>65-95</td><td>22.0</td><td>0.0%</td><td>1-1</td><td>66-96</td><td class="wc-na">&mdash;</td></tr>
-        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>57-103</td><td>30.0</td><td>0.0%</td><td>1-1</td><td>58-104</td><td class="wc-na">&mdash;</td></tr>
+        <tr data-team="AZ"><td class="team"><b>D-backs</b></td><td>86-76</td><td>2.0</td><td>out</td><td>—</td><td>86-76</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="PIT"><td class="team"><b>Pirates</b></td><td>82-80</td><td>6.0</td><td>out</td><td>—</td><td>82-80</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="MIA"><td class="team"><b>Marlins</b></td><td>80-82</td><td>8.0</td><td>out</td><td>—</td><td>80-82</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="STL"><td class="team"><b>Cardinals</b></td><td>77-85</td><td>11.0</td><td>out</td><td>—</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="WSH"><td class="team"><b>Nationals</b></td><td>77-85</td><td>11.0</td><td>out</td><td>—</td><td>77-85</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="CIN"><td class="team"><b>Reds</b></td><td>75-87</td><td>13.0</td><td>out</td><td>—</td><td>75-87</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="NYM"><td class="team"><b>Mets</b></td><td>74-88</td><td>14.0</td><td>out</td><td>—</td><td>74-88</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="SF"><td class="team"><b>Giants</b></td><td>65-97</td><td>23.0</td><td>out</td><td>—</td><td>65-97</td><td class="wc-na">&mdash;</td></tr>
+        <tr class="wc-mut" data-team="COL"><td class="team"><b>Rockies</b></td><td>58-104</td><td>30.0</td><td>out</td><td>—</td><td>58-104</td><td class="wc-na">&mdash;</td></tr>
       </tbody>
     </table>
     <div class="wc-hist" data-lg="NL"></div>
     </div>
   </div>
-  <p class="wc-foot">Odds and projections: FanGraphs playoff odds (FG mode), every route to October included &mdash; the White Sox&rsquo; and Rangers&rsquo; numbers lean partly on their open division races. Division leaders (Rays, Guardians, Astros, Brewers, Dodgers, Braves) aren&rsquo;t listed; a leader who slips falls into this race. Grayed rows are effectively eliminated. &ldquo;vs field&rdquo; = remaining games against the contention field (teams within ~5 games of the cut, both sides), computed live from the schedule each time the page loads &mdash; hover for the full field breakdown (zero-game opponents included) with each head-to-head gap (<span class="wc-up">green</span> = you&rsquo;re ahead of them, <span class="wc-dn">red</span> = behind).</p>
+  <p class="wc-foot">Final standings. Odds/projections are settled (in/out); the field column is retired for the postseason. Division leaders (Rays, Guardians, Astros, Brewers, Dodgers, Braves) took the top three seeds in each league. Grayed rows are effectively eliminated. &ldquo;vs field&rdquo; = remaining games against the contention field (teams within ~5 games of the cut, both sides), computed live from the schedule each time the page loads &mdash; hover for the full field breakdown (zero-game opponents included) with each head-to-head gap (<span class="wc-up">green</span> = you&rsquo;re ahead of them, <span class="wc-dn">red</span> = behind).</p>
 </div>
 <!-- WILDCARD:END -->
 </section>
@@ -680,7 +691,7 @@
   <a href="https://baseballsavant.mlb.com/scoreboard" target="_blank" rel="noopener">Savant scoreboard</a>
   <a href="https://umpscorecards.com" target="_blank" rel="noopener">Ump Scorecards</a>
   <a href="https://www.fangraphs.com/scores" target="_blank" rel="noopener">FanGraphs live</a>
-  <span id="ver" title="Tracker version — if the phone shows an older number, Safari is serving a cached copy">v1.56</span>
+  <span id="ver" title="Tracker version — if the phone shows an older number, Safari is serving a cached copy">v1.59</span>
 </footer>
 
 <script>
@@ -745,13 +756,45 @@
   let pitchDelays = {};        // pk -> seconds (spoiler delay, per game)
   try { pitchDelays = JSON.parse(localStorage.getItem("mlbPitchDelay")) || {}; } catch (e) {}
   function saveDelays() { try { localStorage.setItem("mlbPitchDelay", JSON.stringify(pitchDelays)); } catch (e) {} }
+  // v1.58: the delay survives a refresh. Every poll writes each delayed game's snapshot history, pitch
+  // first-seen stamps, retained finished at-bats and last at-bat index to localStorage; a page loaded
+  // within RESUME_MS of that carries on from the same buffer, so a half-inning that ended just before
+  // the refresh still shows up `delay` seconds after it really happened instead of at once (Ryan, 9/29:
+  // "top 5th" jumped to "mid 5th" in real time). Older saves are ignored — that's "came back later",
+  // where first sight is old news, as before.
+  const RESUME_MS = 10 * 60 * 1000;
+  function saveDelayHist() {
+    try {
+      const o = { at: Date.now(), games: {} };
+      for (const [pk, h] of state.gameHist) {
+        const seen = state.pitchSeen.get(pk);
+        o.games[pk] = { hist: h, seen: seen ? [...seen] : [], lastAB: state.lastAB.get(pk) || [], lastCurIdx: state.lastCurIdx.has(pk) ? state.lastCurIdx.get(pk) : null };
+      }
+      localStorage.setItem("mlbDelayHist", JSON.stringify(o));
+    } catch (e) {}
+  }
+  function restoreDelayHist() {
+    try {
+      const o = JSON.parse(localStorage.getItem("mlbDelayHist"));
+      if (!o || !o.games || Date.now() - o.at > RESUME_MS) return;
+      for (const [pk, rec] of Object.entries(o.games)) {
+        if (!pitchDelays[pk] || !rec.hist || !rec.hist.length) continue;
+        rec.hist.forEach(snap => { if (snap.g && typeof snap.g.start === "string") snap.g.start = new Date(snap.g.start); });
+        state.gameHist.set(+pk, rec.hist);
+        state.pitchSeen.set(+pk, new Map(rec.seen || []));
+        if (rec.lastAB && rec.lastAB.length) state.lastAB.set(+pk, rec.lastAB);
+        if (rec.lastCurIdx != null) state.lastCurIdx.set(+pk, rec.lastCurIdx);
+      }
+    } catch (e) {}
+  }
 
   const FEED_FIELDS = "liveData,plays,currentPlay,about,atBatIndex,matchup,batter,id,playEvents," +
     "isPitch,pitchNumber,details,type,code,call,isBall,pitchData,startSpeed,coordinates,pX,pZ," +
     "strikeZoneTop,strikeZoneBottom,result,event,description,batSide,inning,isComplete," +
     "pfxX,pfxZ,pitchHand," + // v1.46: per-pitch movement (inches, gravity removed) + pitcher hand
     "fullName,pitcher,isTopInning," + // v1.47: batter/pitcher names + half for the whole-game browser
-    "postOnFirst,postOnSecond,postOnThird,count,balls,strikes,outs"; // v1.48: runners/outs after each play -> the NEXT PA's starting situation
+    "postOnFirst,postOnSecond,postOnThird,count,balls,strikes,outs," + // v1.48: runners/outs after each play -> the NEXT PA's starting situation
+    "runners,movement,start,end,outBase,isOut,eventType,movementReason,playIndex,index"; // v1.57: who advanced / scored / was put out, and on which pitch
   // same fields but for EVERY play — used only to recover an at-bat that began and ended
   // between two polls (a quick single, say), so its final pitch and result are never lost
   const FEED_ALL_FIELDS = FEED_FIELDS.replace("currentPlay", "allPlays");
@@ -774,6 +817,39 @@
               : m[0] === "shortstop" ? "SS" : m[0] === "pitcher" ? "P" : "C";
     return res.event + " · " + loc;
   }
+  // v1.57 runners (mockups43 option 6 + the "Base Updates" line): each entry of play.runners is one runner's
+  // movement — start/end base ("1B".."3B", "score", null = batter / put out), outBase when out, and
+  // details.playIndex = the playEvent it happened on. Entries whose eventType isn't the play's own result
+  // are mid-at-bat moves (a steal, a pickoff, a wild pitch) and get pinned under the pitch they followed.
+  const BASE_N = { "1B": 1, "2B": 2, "3B": 3 };
+  function runnerInfo(play) {
+    const out = { runs: [], mid: {}, scored: 0, outsMade: 0, bases: null };
+    const list = Array.isArray(play.runners) ? play.runners : [];
+    if (!list.length) return out;
+    const evs = play.playEvents || [], resType = play.result && play.result.eventType;
+    const pitchBefore = idx => { let n = null; for (let i = 0; i < evs.length && i <= idx; i++) if (evs[i].isPitch) n = evs[i].pitchNumber; return n; };
+    const after = { 1: !!(play.matchup && play.matchup.postOnFirst), 2: !!(play.matchup && play.matchup.postOnSecond), 3: !!(play.matchup && play.matchup.postOnThird) };
+    const before = { ...after }, movers = [];
+    for (const r of list) {
+      const m = r.movement || {}, d = r.details || {};
+      const from = BASE_N[m.start] || "B", to = m.end === "score" ? "H" : BASE_N[m.end] || null, isOut = !!m.isOut, outAt = BASE_N[m.outBase] || null;
+      if (from !== "B" && from === to && !isOut) continue;                       // held
+      movers.push([from, to]);
+      if (to === "H") out.scored++;
+      if (isOut) out.outsMade++;
+      const name = lastName(d.runner && d.runner.fullName || "");
+      const rec = { name, from, to, out: isOut, outAt, ev: d.eventType || "" };
+      const isMid = resType && d.eventType && d.eventType !== resType && !/^(field_error|error)$/.test(d.eventType);
+      if (isMid) { const pn = pitchBefore(typeof d.playIndex === "number" ? d.playIndex : 1e9) || 0; (out.mid[pn] = out.mid[pn] || []).push(rec); }
+      else out.runs.push(rec);
+    }
+    // bases before = after, minus where the movers ended up, plus where they started (two passes: a
+    // batter reaching 1st must not erase a runner who left 1st on the same play)
+    for (const [, to] of movers) if (to && to !== "H") before[to] = false;
+    for (const [from] of movers) if (from !== "B") before[from] = true;
+    out.bases = { before, after };
+    return out;
+  }
   function playToAB(play) {
     const pitches = (play.playEvents || []).filter(e => e.isPitch);
     let szT = 3.4, szB = 1.6;
@@ -790,7 +866,8 @@
                pz: pd.coordinates && typeof pd.coordinates.pfxZ === "number" ? pd.coordinates.pfxZ : null };
     });
     const done = play.about && typeof play.about.isComplete === "boolean" ? play.about.isComplete : null;
-    return { abIdx: play.about ? play.about.atBatIndex : -1, events, szT, szB, result: resultText(play.result, done),
+    const rn = runnerInfo(play);
+    return { abIdx: play.about ? play.about.atBatIndex : -1, events, szT, szB, result: resultText(play.result, done), runs: rn.runs, mid: rn.mid, bases: rn.bases, scored: rn.scored, outsMade: rn.outsMade,
              side: (play.matchup && play.matchup.batSide && play.matchup.batSide.code) || null,
              pit: (play.matchup && play.matchup.pitchHand && play.matchup.pitchHand.code) || null, // v1.46 pitcher hand
              bid: (play.matchup && play.matchup.batter && play.matchup.batter.id) || null,
@@ -1193,9 +1270,11 @@
     }
     const list = "<div class='pl'>" + who +
       (cutIdx ? "<span class='plmore'>… " + cutIdx + " earlier</span>" : "") +
-      shown.map(ev => "<span class='plp" + (ev.n > cutN ? " cutoff" : "") + "' data-pn='" + ev.n + "' data-cpk='" + g.pk + "' title='Show the at-bat up to this pitch'><i style='background:" + PITCH_COL[ev.r] + "'></i>" + esc(ev.c) + " - " + esc(ev.t) + " " + ev.v + "</span>").join("") + // v1.40: call code, not pitch #
+      shown.map(ev => "<span class='plp" + (ev.n > cutN ? " cutoff" : "") + "' data-pn='" + ev.n + "' data-cpk='" + g.pk + "' title='Show the at-bat up to this pitch'><i style='background:" + PITCH_COL[ev.r] + "'></i>" + esc(ev.c) + " - " + esc(ev.t) + " " + ev.v + "</span>" +
+        runnerLines((ab.mid || {})[ev.n], ev.n > cutN)).join("") + // v1.40: call code, not pitch #; v1.57: steals etc. under the pitch they followed
       (cutAB.showResult ? "<span class='plresult" + (ab.result.split(" · ")[0].length <= 10 ? " nowrap" : "") + "'>! " + esc(ab.result.split(" · ")[0]) + "</span>" +
-                          (ab.result.includes(" · ") ? "<span class='plloc'>· " + esc(ab.result.split(" · ")[1]) + "</span>" : "")
+                          (ab.result.includes(" · ") ? "<span class='plloc'>· " + esc(ab.result.split(" · ")[1]) + "</span>" : "") +
+                          runnerLines(ab.runs, false)
                         : "<span class='plcount'>" + abCount(cutAB.events) + "</span>") +
       "</div>";
     const dv = pitchDelays[g.pk] || 0;
@@ -1205,7 +1284,37 @@
     const codes = [...new Set(shown.map(ev => ev.t))].filter(c => PITCH_NAMES[c]);
     const legend = codes.length
       ? "<div class='pitchlegend'>" + codes.map(c => c + " " + PITCH_NAMES[c]).join(" · ") + "</div>" : "";
-    return "<div class='abzone'>" + list + zoneSVG(cutAB, g, vw) + strip + legend + "</div>";
+    return "<div class='abzone'>" + list + zoneSVG(cutAB, g, vw) + strip + legend + "</div>" + (cutAB.showResult ? baseUpdateHTML(ab) : "");
+  }
+  // v1.57 one line per runner: "Reynolds ⌂" scored (green), "Cruz 1→3" advanced, "Cruz ✕2" out at 2nd (red).
+  // The batter's own reach is the result line, so it isn't repeated; a batter put out is the result too.
+  function runnerLines(recs, dim) {
+    if (!recs || !recs.length) return "";
+    return recs.map(r => {
+      if (r.from === "B" && (r.out || !r.to)) return "";
+      if (r.from === "B" && r.to !== "H") return "";
+      const cls = r.to === "H" ? "rs" : r.out ? "ro" : "ra";
+      const txt = r.to === "H" ? esc(r.name) + " ⌂" : r.out ? esc(r.name) + " ✕" + (r.outAt || "") : esc(r.name) + " " + r.from + "→" + r.to;
+      return "<span class='plrun " + cls + (dim ? " cutoff" : "") + (r.from !== "B" && /stolen|pickoff|caught|wild|passed|balk|indiff/.test(r.ev) ? " mid" : "") + "'>" + txt + "</span>";
+    }).join("");
+  }
+  // v1.57 "Base Updates" line under the zone (mockups43 option 4): bases before → after, +runs, outs made
+  let baseUpd = true;
+  try { if (localStorage.getItem("mlbBaseUpd") === "0") baseUpd = false; } catch (e) {}
+  function miniDiamond(b) {
+    const pts = [[11, 8], [8, 5], [5, 8]];
+    return "<svg viewBox='0 0 16 16'><path d='M8 13 L3 8 L8 3 L13 8 Z' fill='none' stroke='var(--text-muted)' stroke-width='0.9'/>" +
+      pts.map(([x, y], k) => "<rect x='" + (x - 1.9) + "' y='" + (y - 1.9) + "' width='3.8' height='3.8' transform='rotate(45 " + x + " " + y + ")' fill='" +
+        (b[k + 1] ? "var(--text-primary)" : "var(--surface-1)") + "' stroke='var(--text-muted)' stroke-width='0.8'/>").join("") + "</svg>";
+  }
+  function baseUpdateHTML(ab) {
+    if (!baseUpd || !ab.bases) return "";
+    const b = ab.bases, same = [1, 2, 3].every(k => b.before[k] === b.after[k]);
+    if (same && !ab.scored && !ab.outsMade) return "";
+    // v1.59: nobody moved (an out with the bases empty or held, a solo homer) -> one diamond and the mark, no arrow
+    const pic = same ? miniDiamond(b.after) : miniDiamond(b.before) + "<span class='arr'>→</span>" + miniDiamond(b.after);
+    return "<div class='baseupd" + (same ? " still" : "") + "' title='" + (same ? "Bases unchanged" : "Bases before the play → after") + "'>" + pic +
+      (ab.scored ? "<span class='runs'>+" + ab.scored + "</span>" : "") + (ab.outsMade ? "<span class='outs'>" + ab.outsMade + "✕</span>" : "") + "</div>";
   }
 
   // ---------- pre-game odds snapshots ----------
@@ -1916,6 +2025,7 @@
       await Promise.all(watched.map(g => fetchAB(g.pk)));
       for (const pk of [...state.abData.keys()])
         if (!watched.some(g => g.pk === pk)) { state.abData.delete(pk); state.pitchSeen.delete(pk); state.lastCurIdx.delete(pk); state.lastAB.delete(pk); }
+      saveDelayHist();   // v1.58
       // v1.47: selected FINAL games get their whole-game PA list (+ boxscore for lineup spots) once
       const finals = state.games.filter(g => g.abstract === "Final" && state.marked.has(g.pk));
       await Promise.all(finals.map(g => loadFinalGame(g.pk)));
@@ -2015,6 +2125,13 @@
     paintBV();
     render();
   });
+  const togBases = document.getElementById("togBases");   // v1.57
+  togBases.setAttribute("aria-pressed", String(baseUpd));
+  togBases.addEventListener("click", () => {
+    baseUpd = !baseUpd; togBases.setAttribute("aria-pressed", String(baseUpd));
+    try { localStorage.setItem("mlbBaseUpd", baseUpd ? "1" : "0"); } catch (e) {}
+    render();
+  });
   const btnZV = document.getElementById("btnZoneView");   // v1.56
   const paintZV = () => { btnZV.textContent = zoneView === "batter" ? "View: batter" : "View: pitcher"; };
   paintZV();
@@ -2067,6 +2184,7 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape" && arrowPop.classList.contains("open")) openArrowPop(false); });
   paintArrowPop();
 
+  restoreDelayHist();   // v1.58: carry the spoiler-delay buffer across a refresh
   tick();
   setInterval(tick, POLL_MS);
   setInterval(renderHeader, 5000);
@@ -2114,11 +2232,11 @@
   // table's data date; refreshed when /mlb regenerates the WILDCARD block.
   const FIELD = {
     CWS:{id:145, name:"White Sox", gb:0.0,  lg:"AL"},
-    TEX:{id:140, name:"Rangers",   gb:4.0,  lg:"AL"},
-    BAL:{id:110, name:"Orioles",   gb:4.5,  lg:"AL"},
+    TEX:{id:140, name:"Rangers",   gb:3.0,  lg:"AL"},
+    BAL:{id:110, name:"Orioles",   gb:4.0,  lg:"AL"},
     TOR:{id:141, name:"Blue Jays", gb:5.0,  lg:"AL"},
-    SD: {id:135, name:"Padres",    gb:-2.0, lg:"NL"},
-    CHC:{id:112, name:"Cubs",      gb:-0.5, lg:"NL"},
+    SD: {id:135, name:"Padres",    gb:-3.0, lg:"NL"},
+    CHC:{id:112, name:"Cubs",      gb:-1.0, lg:"NL"},
     PHI:{id:143, name:"Phillies",  gb:0.0,  lg:"NL"},
     AZ: {id:109, name:"D-backs",   gb:1.0,  lg:"NL"}
   };
